@@ -108,14 +108,7 @@ export function validateEventPayload(body: unknown):
 }
 
 export async function verifyAdminPin(pin: unknown) {
-  if (typeof pin !== "string") {
-    return false;
-  }
-
-  const configuredPin = getAdminPin();
-  const currentPin = await getCurrentAdminPin();
-
-  return pin === currentPin || pin === configuredPin;
+  return typeof pin === "string" && pin === await getCurrentAdminPin();
 }
 
 export async function changeAdminPin(currentPin: unknown, nextPin: unknown) {
