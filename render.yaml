@@ -3,7 +3,7 @@ services:
     name: omnivore-architects-check-in
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm config set fetch-retries 5 && npm config set fetch-retry-mintimeout 20000 && npm config set fetch-retry-maxtimeout 120000 && npm install --no-audit --no-fund && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_VERSION
