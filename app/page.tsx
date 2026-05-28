@@ -28,7 +28,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             연사 강연 프로그램에 오신 것을 환영합니다
           </p>
           <p className="mt-3 text-base leading-7 text-zinc-300">
-            아래에서 체크인을 완료해주세요. 이름, 휴대폰 뒷자리 4개, 회원 또는 게스트 여부만 입력하면 됩니다.
+            아래에서 체크인을 완료해주세요. 이름, 휴대폰 뒷자리 4개, 멤버 또는 게스트 여부만 입력하면 됩니다.
           </p>
         </div>
 
