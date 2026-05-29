@@ -3,7 +3,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import AttendanceTable from "@/components/AttendanceTable";
 import StatCard from "@/components/StatCard";
-import ThemeToggle from "@/components/ThemeToggle";
 import {
   AttendanceListResponse,
   AttendanceRecord,
@@ -35,7 +34,6 @@ export default function AdminDashboard() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isBusy, setIsBusy] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const selectedEvent = useMemo(
     () => events.find((event) => event.id === selectedEventId) ?? events.find((event) => event.is_active) ?? events[0],
@@ -281,11 +279,6 @@ export default function AdminDashboard() {
               이벤트 추가, 편집, 삭제와 QR 배포, 참가자 출석 명단 확인, 엑셀 내보내기를 한곳에서 관리합니다.
             </p>
           </div>
-          <div className="grid gap-3 sm:min-w-32">
-            <button className="admin-button-muted" type="button" onClick={() => setIsSettingsOpen(true)}>
-              설정
-            </button>
-          </div>
         </div>
       </div>
 
@@ -410,23 +403,6 @@ export default function AdminDashboard() {
       </section>
 
       <AttendanceTable records={filteredRecords} onDelete={deleteRecord} isBusy={isBusy} />
-
-      {isSettingsOpen && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-line bg-panel p-5 shadow-glow">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-xl font-bold text-white">관리 설정</h3>
-              <button className="admin-button-muted" type="button" onClick={() => setIsSettingsOpen(false)}>
-                닫기
-              </button>
-            </div>
-            <div className="mt-5 border-t border-line pt-5">
-              <p className="mb-3 text-sm font-semibold text-zinc-300">테마</p>
-              <ThemeToggle />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 
