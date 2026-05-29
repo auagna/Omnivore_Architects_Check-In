@@ -37,6 +37,25 @@ body {
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
+  /* Korean typography: default font tracking feels loose. */
+  /* Tighten body by -1% (-0.01em). Headings tighten further below. */
+  letter-spacing: -0.01em;
+  word-break: keep-all;
+}
+
+h1,
+h2,
+h3 {
+  /* Headings: -2% tracking + tight leading so multi-line titles read as one block. */
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+h4,
+h5,
+h6 {
+  letter-spacing: -0.015em;
+  line-height: 1.25;
 }
 
 button,
