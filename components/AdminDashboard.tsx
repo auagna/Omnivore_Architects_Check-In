@@ -118,10 +118,11 @@ export default function AdminDashboard() {
 
     try {
       const endpoint = editingEventId ? `/api/events/${editingEventId}` : "/api/events";
+      const payload = { ...eventForm, eventDate: localInputToIso(eventForm.eventDate) };
       const response = await fetch(endpoint, {
         method: editingEventId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ event: eventForm })
+        body: JSON.stringify({ event: payload })
       });
       const data = (await response.json()) as { event?: EventRecord; error?: string };
 
@@ -177,7 +178,7 @@ export default function AdminDashboard() {
       title: event.title,
       description: event.description ?? "",
       location: event.location ?? "",
-      eventDate: event.event_date ? event.event_date.slice(0, 16) : "",
+      eventDate: event.event_date ? isoToLocalInput(event.event_date) : "",
       capacity: event.capacity,
       isActive: event.is_active
     });
@@ -419,6 +420,35 @@ function formatDateTime(value: string) {
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date(value));
+}
+
+// `datetime-local` 인풋은 사용자 로컬 타임존의 wall-clock 문자열을 다룬다.
+// Supabase의 timestamptz 컬럼에 안전하게 저장하려면 UTC ISO로 변환해 보내야 한다.
+function localInputToIso(value: string | undefined): string {
+  if (!value) {
+    return "";
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+
+  return parsed.toISOString();
+}
+
+// DB에서 받은 UTC ISO 문자열을 `datetime-local` 인풋이 기대하는
+// "YYYY-MM-DDTHH:mm" 로컬 wall-clock 문자열로 되돌린다.
+function isoToLocalInput(iso: string): string {
+  const date = new Date(iso);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function buildExcelHtml(rows: Record<string, string>[], title: string) {
