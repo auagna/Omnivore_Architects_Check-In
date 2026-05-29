@@ -5,7 +5,7 @@ export default function AdminPage() {
     <main className="safe-screen px-4 py-6 sm:px-6 lg:px-8">
       <section className="mx-auto w-full max-w-6xl">
         <div className="mb-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-soft">
+          <p className="text-sm font-semibold uppercase tracking-[0.08em] text-soft">
             Omnivore Architects
           </p>
           <h1 className="mt-3 text-3xl font-bold leading-tight text-slate-900">

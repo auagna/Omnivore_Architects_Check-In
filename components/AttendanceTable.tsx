@@ -21,7 +21,7 @@ export default function AttendanceTable({ records, onDelete, isBusy }: Attendanc
     <div className="overflow-hidden rounded-lg border border-line bg-panel">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-line text-left text-sm">
-          <thead className="bg-slate-100 text-xs uppercase tracking-[0.12em] text-slate-500">
+          <thead className="bg-slate-100 text-xs uppercase tracking-[0.04em] text-slate-500">
             <tr>
               <th className="whitespace-nowrap px-4 py-3">시간</th>
               <th className="whitespace-nowrap px-4 py-3">이름</th>
