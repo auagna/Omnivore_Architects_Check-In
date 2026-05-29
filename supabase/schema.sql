@@ -22,16 +22,6 @@ insert into public.events (title, description, capacity, is_active)
 select '잡식건축가 연사 강연', '연사 강연 출석 체크인', 60, true
 where not exists (select 1 from public.events);
 
-create table if not exists public.admin_settings (
-  key text primary key,
-  value text not null,
-  updated_at timestamp with time zone not null default now()
-);
-
-insert into public.admin_settings (key, value)
-values ('admin_pin', '1030')
-on conflict (key) do nothing;
-
 create table if not exists public.attendance_records (
   id uuid primary key default gen_random_uuid(),
   created_at timestamp with time zone not null default now(),
@@ -68,7 +58,6 @@ create index if not exists attendance_records_group_type_idx
   on public.attendance_records (group_type);
 
 alter table public.events enable row level security;
-alter table public.admin_settings enable row level security;
 alter table public.attendance_records enable row level security;
 
 -- 이 앱은 Next.js 서버 API route에서 service role key로만 DB에 접근합니다.
