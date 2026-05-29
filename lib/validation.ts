@@ -1,4 +1,3 @@
-import { getSupabaseAdmin } from "@/lib/supabase";
 import { AttendanceFormInput, EventFormInput, GroupType } from "@/types/attendance";
 
 export const DUPLICATE_ERROR =
@@ -9,25 +8,6 @@ export const CAPACITY_ERROR =
 export function getEventCapacity() {
   const capacity = Number(process.env.EVENT_CAPACITY ?? "60");
   return Number.isFinite(capacity) && capacity > 0 ? capacity : 60;
-}
-
-export function getAdminPin() {
-  return process.env.ADMIN_PIN ?? "1030";
-}
-
-export async function getCurrentAdminPin() {
-  const supabaseAdmin = getSupabaseAdmin();
-  const { data, error } = await supabaseAdmin
-    .from("admin_settings")
-    .select("value")
-    .eq("key", "admin_pin")
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data?.value ?? getAdminPin();
 }
 
 export function isValidGroupType(value: unknown): value is GroupType {
@@ -105,31 +85,4 @@ export function validateEventPayload(body: unknown):
       isActive: Boolean(payload.isActive)
     }
   };
-}
-
-export async function verifyAdminPin(pin: unknown) {
-  return typeof pin === "string" && pin === await getCurrentAdminPin();
-}
-
-export async function changeAdminPin(currentPin: unknown, nextPin: unknown) {
-  if (!await verifyAdminPin(currentPin)) {
-    return { ok: false as const, status: 401, error: "현재 PIN이 올바르지 않습니다." };
-  }
-
-  const normalizedPin = String(nextPin ?? "").trim();
-
-  if (!/^\d{4,8}$/.test(normalizedPin)) {
-    return { ok: false as const, status: 400, error: "새 PIN은 숫자 4~8자리로 입력해주세요." };
-  }
-
-  const supabaseAdmin = getSupabaseAdmin();
-  const { error } = await supabaseAdmin
-    .from("admin_settings")
-    .upsert({ key: "admin_pin", value: normalizedPin }, { onConflict: "key" });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return { ok: true as const };
 }
