@@ -289,27 +289,27 @@ export default function AdminDashboard() {
         <div className="rounded-lg border border-line bg-panel p-5">
           <h3 className="text-lg font-bold text-slate-900">이벤트 관리</h3>
           <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={saveEvent}>
-            <label className="block md:col-span-2">
+            <label className="block min-w-0 md:col-span-2">
               <span className="admin-label">이벤트 이름</span>
               <input className="admin-input" value={eventForm.title} onChange={(event) => setEventFormValue("title", event.target.value)} />
             </label>
-            <label className="block">
+            <label className="block min-w-0">
               <span className="admin-label">일시</span>
               <input className="admin-input" type="datetime-local" value={eventForm.eventDate} onChange={(event) => setEventFormValue("eventDate", event.target.value)} />
             </label>
-            <label className="block">
+            <label className="block min-w-0">
               <span className="admin-label">정원</span>
               <input className="admin-input" type="number" min="1" value={eventForm.capacity} onChange={(event) => setEventFormValue("capacity", Number(event.target.value))} />
             </label>
-            <label className="block">
+            <label className="block min-w-0">
               <span className="admin-label">장소</span>
               <input className="admin-input" value={eventForm.location} onChange={(event) => setEventFormValue("location", event.target.value)} />
             </label>
-            <label className="block">
+            <label className="block min-w-0">
               <span className="admin-label">설명</span>
               <input className="admin-input" value={eventForm.description} onChange={(event) => setEventFormValue("description", event.target.value)} />
             </label>
-            <label className="flex items-center gap-3 rounded-md border border-line bg-ink px-4 py-3 text-sm font-semibold text-slate-700">
+            <label className="flex min-w-0 items-center gap-3 rounded-md border border-line bg-ink px-4 py-3 text-sm font-semibold text-slate-700">
               <input type="checkbox" checked={eventForm.isActive} onChange={(event) => setEventFormValue("isActive", event.target.checked)} />
               활성 이벤트로 사용
             </label>
