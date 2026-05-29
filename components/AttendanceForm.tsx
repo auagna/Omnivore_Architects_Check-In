@@ -73,7 +73,7 @@ export default function AttendanceForm({ eventId }: AttendanceFormProps) {
       </label>
 
       <label className="block">
-        <span className="mb-2 block text-sm font-medium text-slate-700">휴대폰 뒷번호 4자리</span>
+        <span className="mb-2 block text-sm font-medium text-slate-700">연락처 뒷번호 4자리</span>
         <input
           className="focus-ring w-full rounded-md border border-line bg-ink px-4 py-4 text-lg text-slate-900 placeholder:text-slate-400"
           value={form.phoneLast4}
@@ -84,7 +84,7 @@ export default function AttendanceForm({ eventId }: AttendanceFormProps) {
           autoComplete="off"
           required
         />
-        <p className="mt-2 text-sm text-slate-500">휴대폰 번호의 뒷번호 4자리를 입력해주세요</p>
+        <p className="mt-2 text-sm text-slate-500">연락처 뒷번호 4자리를 입력해주세요</p>
       </label>
 
       <fieldset>

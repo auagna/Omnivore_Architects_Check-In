@@ -1,4 +1,3 @@
-import AttendanceCount from "@/components/AttendanceCount";
 import AttendanceForm from "@/components/AttendanceForm";
 
 type HomePageProps = {
@@ -27,7 +26,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </div>
 
         <div className="rounded-lg border border-line bg-panel/95 p-5 shadow-glow">
-          <AttendanceCount eventId={eventId} />
           <AttendanceForm eventId={eventId} />
         </div>
       </section>
