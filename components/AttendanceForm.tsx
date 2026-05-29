@@ -54,14 +54,14 @@ export default function AttendanceForm({ eventId }: AttendanceFormProps) {
   }
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
+    <form className="space-y-4 md:space-y-5" onSubmit={handleSubmit}>
       <div>
-        <p className="text-sm font-semibold text-slate-500">체크인</p>
-        <h2 className="mt-1 text-xl font-bold text-slate-900">정보를 입력해주세요</h2>
+        <p className="text-sm font-semibold text-slate-500 md:text-base">체크인</p>
+        <h2 className="mt-1 text-xl font-bold text-slate-900 md:text-2xl">정보를 입력해주세요</h2>
       </div>
 
       <label className="block">
-        <span className="mb-2 block text-sm font-medium text-slate-700">이름</span>
+        <span className="mb-2 block text-sm font-medium text-slate-700 md:text-base">이름</span>
         <input
           className="focus-ring w-full rounded-md border border-line bg-ink px-4 py-4 text-lg text-slate-900 placeholder:text-slate-400"
           value={form.name}
@@ -73,7 +73,7 @@ export default function AttendanceForm({ eventId }: AttendanceFormProps) {
       </label>
 
       <label className="block">
-        <span className="mb-2 block text-sm font-medium text-slate-700">연락처 뒷번호 4자리</span>
+        <span className="mb-2 block text-sm font-medium text-slate-700 md:text-base">연락처 뒷번호 4자리</span>
         <input
           className="focus-ring w-full rounded-md border border-line bg-ink px-4 py-4 text-lg text-slate-900 placeholder:text-slate-400"
           value={form.phoneLast4}
@@ -84,15 +84,15 @@ export default function AttendanceForm({ eventId }: AttendanceFormProps) {
           autoComplete="off"
           required
         />
-        <p className="mt-2 text-sm text-slate-500">연락처 뒷번호 4자리를 입력해주세요</p>
+        <p className="mt-2 text-sm text-slate-500 md:text-base">연락처 뒷번호 4자리를 입력해주세요</p>
       </label>
 
       <fieldset>
-        <legend className="mb-2 text-sm font-medium text-slate-700">구분</legend>
-        <div className="grid grid-cols-2 gap-2">
+        <legend className="mb-2 text-sm font-medium text-slate-700 md:text-base">구분</legend>
+        <div className="grid grid-cols-2 gap-2 md:gap-3">
           {(["member", "guest"] as GroupType[]).map((type) => (
             <button
-              className={`focus-ring rounded-md border px-4 py-4 text-base font-semibold transition ${
+              className={`focus-ring rounded-md border px-4 py-4 text-base font-semibold transition md:text-lg ${
                 form.groupType === type
                   ? "border-slate-900 bg-slate-900 text-white"
                   : "border-line bg-ink text-slate-700 hover:bg-slate-100"
@@ -108,9 +108,9 @@ export default function AttendanceForm({ eventId }: AttendanceFormProps) {
       </fieldset>
 
       <label className="block">
-        <span className="mb-2 block text-sm font-medium text-slate-700">메모 (선택사항)</span>
+        <span className="mb-2 block text-sm font-medium text-slate-700 md:text-base">메모 (선택사항)</span>
         <textarea
-          className="focus-ring min-h-24 w-full resize-none rounded-md border border-line bg-ink px-4 py-4 text-base text-slate-900 placeholder:text-slate-400"
+          className="focus-ring min-h-24 w-full resize-none rounded-md border border-line bg-ink px-4 py-4 text-base text-slate-900 placeholder:text-slate-400 md:min-h-28"
           value={form.memo}
           onChange={(event) => setField("memo", event.target.value)}
           placeholder="추가 메모를 입력하세요..."
@@ -121,7 +121,7 @@ export default function AttendanceForm({ eventId }: AttendanceFormProps) {
       {error && <p className="notice-error">{error}</p>}
 
       <button
-        className="focus-ring w-full rounded-md bg-slate-900 px-5 py-4 text-lg font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+        className="focus-ring w-full rounded-md bg-slate-900 px-5 py-4 text-lg font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 md:py-5 md:text-xl"
         type="submit"
         disabled={isSubmitting}
       >
