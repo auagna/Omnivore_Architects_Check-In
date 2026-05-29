@@ -21,9 +21,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           <h1 className="mt-3 text-3xl font-bold leading-tight text-white">
             연사 강연 출석 체크인
           </h1>
-          <a className="mt-3 inline-flex text-sm font-semibold text-zinc-300 underline underline-offset-4" href="/admin">
-            관리자
-          </a>
           <p className="mt-4 text-base font-semibold text-zinc-100">
             연사 강연 프로그램에 오신 것을 환영합니다
           </p>
