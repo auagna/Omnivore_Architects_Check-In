@@ -10,14 +10,18 @@ type AttendanceTableProps = {
 
 export default function AttendanceTable({ records, onDelete, isBusy }: AttendanceTableProps) {
   if (records.length === 0) {
-    return <div className="rounded-lg border border-line bg-panel p-8 text-center text-zinc-400">표시할 출석 기록이 없습니다.</div>;
+    return (
+      <div className="rounded-lg border border-line bg-panel p-8 text-center text-slate-500">
+        표시할 출석 기록이 없습니다.
+      </div>
+    );
   }
 
   return (
     <div className="overflow-hidden rounded-lg border border-line bg-panel">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-line text-left text-sm">
-          <thead className="bg-white/[0.03] text-xs uppercase tracking-[0.12em] text-zinc-400">
+          <thead className="bg-slate-100 text-xs uppercase tracking-[0.12em] text-slate-500">
             <tr>
               <th className="whitespace-nowrap px-4 py-3">시간</th>
               <th className="whitespace-nowrap px-4 py-3">이름</th>
@@ -29,12 +33,12 @@ export default function AttendanceTable({ records, onDelete, isBusy }: Attendanc
           </thead>
           <tbody className="divide-y divide-line">
             {records.map((record) => (
-              <tr className="text-zinc-200" key={record.id}>
-                <td className="whitespace-nowrap px-4 py-4 text-zinc-400">{formatTime(record.created_at)}</td>
-                <td className="whitespace-nowrap px-4 py-4 font-semibold text-white">{record.name}</td>
-                <td className="whitespace-nowrap px-4 py-4">{record.phone_last4}</td>
+              <tr className="text-slate-700" key={record.id}>
+                <td className="whitespace-nowrap px-4 py-4 text-slate-500 tabular-nums">{formatTime(record.created_at)}</td>
+                <td className="whitespace-nowrap px-4 py-4 font-semibold text-slate-900">{record.name}</td>
+                <td className="whitespace-nowrap px-4 py-4 tabular-nums">{record.phone_last4}</td>
                 <td className="whitespace-nowrap px-4 py-4"><GroupBadge groupType={record.group_type} /></td>
-                <td className="px-4 py-4 text-zinc-300">{record.memo || "-"}</td>
+                <td className="px-4 py-4 text-slate-600">{record.memo || "-"}</td>
                 <td className="whitespace-nowrap px-4 py-4 text-right">
                   <button className="table-button-danger" type="button" disabled={isBusy} onClick={() => onDelete(record.id)}>삭제</button>
                 </td>
@@ -48,7 +52,16 @@ export default function AttendanceTable({ records, onDelete, isBusy }: Attendanc
 }
 
 function GroupBadge({ groupType }: { groupType: GroupType }) {
-  return <span className="inline-flex rounded-md border border-line bg-ink px-2.5 py-1 text-xs font-semibold text-zinc-200">{groupType === "member" ? "멤버" : "게스트"}</span>;
+  const isMember = groupType === "member";
+  return (
+    <span
+      className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold ${
+        isMember ? "bg-slate-900 text-white" : "border border-line bg-white text-slate-700"
+      }`}
+    >
+      {isMember ? "멤버" : "게스트"}
+    </span>
+  );
 }
 
 function formatTime(value: string) {

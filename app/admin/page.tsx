@@ -6,9 +6,9 @@ export default function AdminPage() {
       <section className="mx-auto w-full max-w-6xl">
         <div className="mb-6">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-soft">
-            Jabsik Architect
+            Omnivore Architects
           </p>
-          <h1 className="mt-3 text-3xl font-bold leading-tight text-white">
+          <h1 className="mt-3 text-3xl font-bold leading-tight text-slate-900">
             운영진 출석 관리
           </h1>
         </div>

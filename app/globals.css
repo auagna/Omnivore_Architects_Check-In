@@ -4,10 +4,6 @@
 
 :root {
   color-scheme: light;
-  --color-ink-rgb: 255 255 255;
-  --color-panel-rgb: 248 250 252;
-  --color-line-rgb: 203 213 225;
-  --color-soft-rgb: 71 85 105;
   --color-text: #0f172a;
   --color-muted: #334155;
   --color-subtle: #64748b;
@@ -26,7 +22,7 @@
 
 html {
   min-height: 100%;
-  background: rgb(var(--color-ink-rgb));
+  background: #ffffff;
 }
 
 body {
@@ -68,11 +64,11 @@ textarea {
 }
 
 .focus-ring {
-  @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white;
+  @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900;
 }
 
 .admin-button {
-  @apply rounded-md border border-line px-4 py-3 text-sm font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-60;
+  @apply rounded-md border border-line px-4 py-3 text-sm font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60;
   background: var(--color-button);
   color: var(--color-button-text);
 }
@@ -82,34 +78,38 @@ textarea {
 }
 
 .admin-button-muted {
-  @apply rounded-md border border-line bg-ink px-4 py-3 text-sm font-bold text-zinc-200 transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white;
+  @apply rounded-md border border-line bg-ink px-4 py-3 text-sm font-bold transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900;
+  color: var(--color-text);
 }
 
 .admin-input {
-  @apply focus-ring w-full rounded-md border border-line bg-ink px-4 py-3 text-base placeholder:text-zinc-600;
+  @apply focus-ring w-full rounded-md border border-line bg-ink px-4 py-3 text-base placeholder:text-slate-400;
   color: var(--color-text);
 }
 
 .admin-label {
-  @apply mb-2 block text-sm font-medium text-zinc-200;
+  @apply mb-2 block text-sm font-medium;
+  color: var(--color-muted);
 }
 
 .table-button {
-  @apply focus-ring rounded-md border border-line px-3 py-2 text-sm font-semibold text-zinc-200 transition hover:bg-white/10;
+  @apply focus-ring rounded-md border border-line px-3 py-2 text-sm font-semibold transition hover:bg-slate-100;
+  color: var(--color-text);
 }
 
 .table-button-danger {
-  @apply focus-ring rounded-md border border-red-400/40 px-3 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-50;
+  @apply focus-ring rounded-md border border-red-300 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .filter-button {
-  @apply focus-ring rounded-md border border-line bg-ink px-4 py-3 text-sm font-semibold text-zinc-300 transition hover:bg-white/10;
+  @apply focus-ring rounded-md border border-line bg-ink px-4 py-3 text-sm font-semibold transition hover:bg-slate-100;
+  color: var(--color-muted);
 }
 
 .filter-button-active {
-  @apply border-white;
   background: var(--color-button);
   color: var(--color-button-text);
+  border-color: var(--color-button);
 }
 
 .primary-button {
@@ -122,32 +122,14 @@ textarea {
   background: var(--color-button-hover);
 }
 
-.text-white,
-.text-zinc-100,
-.text-zinc-200 {
-  color: var(--color-text) !important;
-}
-
-.text-zinc-300,
-.text-zinc-400,
-.text-zinc-500,
-.text-soft {
-  color: var(--color-muted) !important;
-}
-
-.bg-black\/20,
-.bg-white\/\[0\.03\] {
-  background-color: rgba(15, 23, 42, 0.04) !important;
-}
-
 .danger-button {
-  @apply focus-ring rounded-md border border-red-400/40 px-4 py-3 text-sm font-bold text-red-200 transition hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-50;
+  @apply focus-ring rounded-md border border-red-300 px-4 py-3 text-sm font-bold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .notice-success {
-  @apply rounded-md border border-emerald-400/40 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200;
+  @apply rounded-md border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800;
 }
 
 .notice-error {
-  @apply rounded-md border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-200;
+  @apply rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700;
 }

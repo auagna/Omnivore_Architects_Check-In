@@ -16,16 +16,13 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <section className="mx-auto flex min-h-[calc(100svh-3rem)] w-full max-w-md flex-col justify-center">
         <div className="mb-6">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-soft">
-            잡식건축가
+            잡식건축가 · Omnivore Architects
           </p>
-          <h1 className="mt-3 text-3xl font-bold leading-tight text-white">
-            연사 강연 출석 체크인
+          <h1 className="mt-3 text-3xl font-bold leading-tight text-slate-900">
+            체크인 <span className="font-medium text-slate-500">/ Check In</span>
           </h1>
-          <p className="mt-4 text-base font-semibold text-zinc-100">
-            연사 강연 프로그램에 오신 것을 환영합니다
-          </p>
-          <p className="mt-3 text-base leading-7 text-zinc-300">
-            아래에서 체크인을 완료해주세요. 이름, 휴대폰 뒷자리 4개, 멤버 또는 게스트 여부만 입력하면 됩니다.
+          <p className="mt-3 text-base leading-7 text-slate-600">
+            아래에서 체크인을 완료해주세요.
           </p>
         </div>
 

@@ -273,9 +273,9 @@ export default function AdminDashboard() {
       <div className="rounded-lg border border-line bg-panel p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-sm text-zinc-400">관리자</p>
-            <h2 className="mt-2 text-2xl font-bold text-white">이벤트 및 출석 관리</h2>
-            <p className="mt-3 max-w-2xl text-base leading-7 text-zinc-300">
+            <p className="text-sm text-slate-500">관리자</p>
+            <h2 className="mt-2 text-2xl font-bold text-slate-900">이벤트 및 출석 관리</h2>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
               이벤트 추가, 편집, 삭제와 QR 배포, 참가자 출석 명단 확인, 엑셀 내보내기를 한곳에서 관리합니다.
             </p>
           </div>
@@ -287,7 +287,7 @@ export default function AdminDashboard() {
 
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="rounded-lg border border-line bg-panel p-5">
-          <h3 className="text-lg font-bold text-white">이벤트 관리</h3>
+          <h3 className="text-lg font-bold text-slate-900">이벤트 관리</h3>
           <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={saveEvent}>
             <label className="block md:col-span-2">
               <span className="admin-label">이벤트 이름</span>
@@ -309,7 +309,7 @@ export default function AdminDashboard() {
               <span className="admin-label">설명</span>
               <input className="admin-input" value={eventForm.description} onChange={(event) => setEventFormValue("description", event.target.value)} />
             </label>
-            <label className="flex items-center gap-3 rounded-md border border-line bg-ink px-4 py-3 text-sm font-semibold text-zinc-200">
+            <label className="flex items-center gap-3 rounded-md border border-line bg-ink px-4 py-3 text-sm font-semibold text-slate-700">
               <input type="checkbox" checked={eventForm.isActive} onChange={(event) => setEventFormValue("isActive", event.target.checked)} />
               활성 이벤트로 사용
             </label>
@@ -327,7 +327,7 @@ export default function AdminDashboard() {
 
           <div className="mt-5 overflow-x-auto">
             <table className="min-w-full divide-y divide-line text-left text-sm">
-              <thead className="bg-white/[0.03] text-xs text-zinc-400">
+              <thead className="bg-slate-100 text-xs text-slate-500">
                 <tr>
                   <th className="px-4 py-3">이벤트</th>
                   <th className="px-4 py-3">일시</th>
@@ -338,8 +338,8 @@ export default function AdminDashboard() {
               </thead>
               <tbody className="divide-y divide-line">
                 {events.map((event) => (
-                  <tr className="text-zinc-200" key={event.id}>
-                    <td className="px-4 py-4 font-semibold text-white">{event.title}</td>
+                  <tr className="text-slate-700" key={event.id}>
+                    <td className="px-4 py-4 font-semibold text-slate-900">{event.title}</td>
                     <td className="px-4 py-4">{event.event_date ? formatDateTime(event.event_date) : "-"}</td>
                     <td className="px-4 py-4">{event.capacity}명</td>
                     <td className="px-4 py-4">{event.is_active ? "활성" : "대기"}</td>
@@ -355,7 +355,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="rounded-lg border border-line bg-panel p-5">
-          <h3 className="text-lg font-bold text-white">QR 배포</h3>
+          <h3 className="text-lg font-bold text-slate-900">QR 배포</h3>
           <div className="mt-4 rounded-md border border-line bg-white p-4">
             {qrLink && (
               <img
@@ -365,7 +365,7 @@ export default function AdminDashboard() {
               />
             )}
           </div>
-          <p className="mt-3 break-all text-sm text-zinc-300">{qrLink || "이벤트를 먼저 추가해주세요."}</p>
+          <p className="mt-3 break-all text-sm text-slate-600">{qrLink || "이벤트를 먼저 추가해주세요."}</p>
           <button className="admin-button mt-4 w-full" type="button" disabled={!qrLink} onClick={copyQrLink}>
             QR 배포 링크 복사
           </button>

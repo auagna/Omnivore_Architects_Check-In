@@ -43,9 +43,9 @@ export default function AttendanceCount({ eventId }: AttendanceCountProps) {
   }, [eventId]);
 
   return (
-    <div className="mb-5 rounded-md border border-line bg-black/20 px-4 py-3">
-      <p className="text-sm text-zinc-400">현재 출석체크 인원</p>
-      <p className="mt-1 text-2xl font-semibold text-white">
+    <div className="mb-5 rounded-md border border-line bg-slate-50 px-4 py-3">
+      <p className="text-sm text-slate-500">현재 출석체크 인원</p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
         {count === null ? "확인 중" : `${count}${capacity ? ` / ${capacity}` : ""}명`}
       </p>
     </div>
