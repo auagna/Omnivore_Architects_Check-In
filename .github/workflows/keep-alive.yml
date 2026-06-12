@@ -1,0 +1,20 @@
+name: Keep Supabase alive
+
+# Supabase free 플랜은 7일간 API 호출이 없으면 프로젝트를 일시정지한다.
+# 3일마다 우리 API를 한 번 호출해서 Supabase + Render 둘 다 깨워둔다.
+on:
+  schedule:
+    # 매월 1, 4, 7, ..., 28일 12:00 UTC (= 21:00 KST). 최대 간격 4일.
+    - cron: "0 12 */3 * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping events endpoint to wake Supabase
+        run: |
+          curl --fail --silent --show-error --max-time 60 \
+            -o /dev/null -w "HTTP %{http_code} | %{time_total}s\n" \
+            "https://omnivore-architects-check-in.onrender.com/api/events"
