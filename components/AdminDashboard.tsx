@@ -562,7 +562,7 @@ export default function AdminDashboard() {
     <div className="space-y-5">
       {/* 1. 이벤트 및 출석 관리 + QR */}
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="rounded-lg border border-line bg-panel p-5">
+        <div className="min-w-0 rounded-lg border border-line bg-panel p-5">
           <p className="text-sm text-slate-500">관리자</p>
           <h2 className="mt-2 text-2xl font-bold text-slate-900">이벤트 및 출석 관리</h2>
           <p className="mt-3 text-base leading-7 text-slate-600">
@@ -608,7 +608,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-line bg-panel p-5">
+        <div className="min-w-0 rounded-lg border border-line bg-panel p-5">
           <h3 className="text-lg font-bold text-slate-900">QR 배포</h3>
           <div className="mt-4 rounded-md border border-line bg-white p-4">
             {qrLink && (
@@ -634,7 +634,7 @@ export default function AdminDashboard() {
 
       {/* 3. 이벤트 관리 + 멤버(시즌) 리스트 */}
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="rounded-lg border border-line bg-panel p-5">
+        <div className="min-w-0 rounded-lg border border-line bg-panel p-5">
           <h3 className="text-lg font-bold text-slate-900">이벤트 관리</h3>
           <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={saveEvent}>
             <label className="block min-w-0 md:col-span-2">
@@ -853,7 +853,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <SeasonsManager seasons={seasons} onChanged={() => loadSeasons().catch((seasonError) => setError(seasonError.message))} />
           <TagsManager tags={tags} onChanged={() => loadTags().catch((tagError) => setError(tagError.message))} />
         </div>
