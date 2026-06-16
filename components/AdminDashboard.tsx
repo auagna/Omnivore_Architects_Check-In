@@ -1,16 +1,21 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import AttendanceStats from "@/components/AttendanceStats";
 import AttendanceTable from "@/components/AttendanceTable";
 import EventCalendar from "@/components/EventCalendar";
+import SeasonsManager from "@/components/SeasonsManager";
 import StatCard from "@/components/StatCard";
+import TagsManager from "@/components/TagsManager";
 import {
   AttendanceListResponse,
   AttendanceRecord,
   EventFormInput,
   EventOption,
   EventRecord,
-  GroupType
+  GroupType,
+  Season,
+  Tag
 } from "@/types/attendance";
 
 type FilterValue = "all" | GroupType;
@@ -23,7 +28,9 @@ const emptyEventForm: EventFormInput = {
   capacity: 60,
   isActive: true,
   customOptions: [],
-  roster: []
+  roster: [],
+  seasonId: null,
+  tagId: null
 };
 
 // 명단 대조용 이름 정규화 (공백·대소문자 무시)
@@ -41,6 +48,8 @@ export default function AdminDashboard() {
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [eventForm, setEventForm] = useState<EventFormInput>(emptyEventForm);
   const [rosterText, setRosterText] = useState("");
+  const [seasons, setSeasons] = useState<Season[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [stats, setStats] = useState<AttendanceListResponse["stats"] | null>(null);
   const [search, setSearch] = useState("");
@@ -91,9 +100,29 @@ export default function AdminDashboard() {
     setStats(data.stats);
   }, []);
 
+  const loadSeasons = useCallback(async () => {
+    const response = await fetch("/api/seasons", { cache: "no-store" });
+    const data = (await response.json()) as { seasons?: Season[]; error?: string };
+    if (!response.ok) {
+      throw new Error(data.error ?? "시즌 목록을 불러오지 못했습니다.");
+    }
+    setSeasons(data.seasons ?? []);
+  }, []);
+
+  const loadTags = useCallback(async () => {
+    const response = await fetch("/api/tags", { cache: "no-store" });
+    const data = (await response.json()) as { tags?: Tag[]; error?: string };
+    if (!response.ok) {
+      throw new Error(data.error ?? "태그 목록을 불러오지 못했습니다.");
+    }
+    setTags(data.tags ?? []);
+  }, []);
+
   useEffect(() => {
     loadEvents().catch((eventError) => setError(eventError.message));
-  }, [loadEvents]);
+    loadSeasons().catch((seasonError) => setError(seasonError.message));
+    loadTags().catch((tagError) => setError(tagError.message));
+  }, [loadEvents, loadSeasons, loadTags]);
 
   useEffect(() => {
     if (!selectedEvent?.id) {
@@ -227,9 +256,22 @@ export default function AdminDashboard() {
       capacity: event.capacity,
       isActive: event.is_active,
       customOptions: event.custom_options.map((option) => ({ ...option })),
-      roster: event.roster
+      roster: event.roster,
+      seasonId: event.season_id,
+      tagId: event.tag_id
     });
     setRosterText(event.roster.join("\n"));
+  }
+
+  // 시즌 선택 시 해당 시즌 멤버 명단을 참가자 명단으로 불러옵니다.
+  function selectSeason(seasonId: string) {
+    setEventFormValue("seasonId", seasonId || null);
+    if (seasonId) {
+      const season = seasons.find((item) => item.id === seasonId);
+      if (season) {
+        setRosterText(season.members.join("\n"));
+      }
+    }
   }
 
   function addCustomOption() {
@@ -387,6 +429,24 @@ export default function AdminDashboard() {
               <span className="admin-label">장소</span>
               <input className="admin-input" value={eventForm.location} onChange={(event) => setEventFormValue("location", event.target.value)} />
             </label>
+            <label className="block min-w-0">
+              <span className="admin-label">시즌 (선택 시 명단 자동 입력)</span>
+              <select className="admin-input" value={eventForm.seasonId ?? ""} onChange={(event) => selectSeason(event.target.value)}>
+                <option value="">시즌 미지정</option>
+                {seasons.map((season) => (
+                  <option key={season.id} value={season.id}>{season.name} (멤버 {season.members.length}명)</option>
+                ))}
+              </select>
+            </label>
+            <label className="block min-w-0">
+              <span className="admin-label">태그</span>
+              <select className="admin-input" value={eventForm.tagId ?? ""} onChange={(event) => setEventFormValue("tagId", event.target.value || null)}>
+                <option value="">태그 미지정</option>
+                {tags.map((tag) => (
+                  <option key={tag.id} value={tag.id}>{tag.name}</option>
+                ))}
+              </select>
+            </label>
             <label className="block min-w-0 md:col-span-2">
               <span className="admin-label">설명</span>
               <input className="admin-input" value={eventForm.description} onChange={(event) => setEventFormValue("description", event.target.value)} />
@@ -448,6 +508,7 @@ export default function AdminDashboard() {
               <thead className="bg-slate-100 text-xs text-slate-500">
                 <tr>
                   <th className="px-4 py-3">이벤트</th>
+                  <th className="px-4 py-3">태그</th>
                   <th className="px-4 py-3">일시</th>
                   <th className="px-4 py-3">정원</th>
                   <th className="px-4 py-3">상태</th>
@@ -458,6 +519,7 @@ export default function AdminDashboard() {
                 {events.map((event) => (
                   <tr className="text-slate-700" key={event.id}>
                     <td className="px-4 py-4 font-semibold text-slate-900">{event.title}</td>
+                    <td className="px-4 py-4">{tags.find((tag) => tag.id === event.tag_id)?.name ?? "-"}</td>
                     <td className="px-4 py-4">{event.event_date ? formatDateTime(event.event_date) : "-"}</td>
                     <td className="px-4 py-4">{event.capacity}명</td>
                     <td className="px-4 py-4">{event.is_active ? "활성" : "대기"}</td>
@@ -492,6 +554,11 @@ export default function AdminDashboard() {
       </section>
 
       <EventCalendar events={events} selectedEventId={selectedEvent?.id} onSelectEvent={setSelectedEventId} />
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <SeasonsManager seasons={seasons} onChanged={() => loadSeasons().catch((seasonError) => setError(seasonError.message))} />
+        <TagsManager tags={tags} onChanged={() => loadTags().catch((tagError) => setError(tagError.message))} />
+      </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="총 출석 수" value={stats?.total ?? records.length} tone="bright" />
@@ -584,6 +651,8 @@ export default function AdminDashboard() {
       )}
 
       <AttendanceTable records={filteredRecords} options={selectedEvent?.custom_options ?? []} onDelete={deleteRecord} isBusy={isBusy} />
+
+      <AttendanceStats />
     </div>
   );
 

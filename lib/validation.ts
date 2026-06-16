@@ -4,7 +4,9 @@ import {
   EventFormInput,
   EventOption,
   GroupType,
-  OptionResponses
+  OptionResponses,
+  SeasonFormInput,
+  TagFormInput
 } from "@/types/attendance";
 
 export const DUPLICATE_ERROR =
@@ -205,6 +207,9 @@ export function validateEventPayload(body: unknown):
     return { ok: false, error: "정원은 1명 이상 9999명 이하로 입력해주세요." };
   }
 
+  const seasonId = typeof payload.seasonId === "string" && payload.seasonId.trim() ? payload.seasonId.trim() : null;
+  const tagId = typeof payload.tagId === "string" && payload.tagId.trim() ? payload.tagId.trim() : null;
+
   return {
     ok: true,
     data: {
@@ -215,7 +220,49 @@ export function validateEventPayload(body: unknown):
       capacity,
       isActive: Boolean(payload.isActive),
       customOptions: normalizeCustomOptions(payload.customOptions),
-      roster: normalizeRoster(payload.roster)
+      roster: normalizeRoster(payload.roster),
+      seasonId,
+      tagId
     }
   };
+}
+
+export function validateSeasonPayload(body: unknown):
+  | { ok: true; data: SeasonFormInput }
+  | { ok: false; error: string } {
+  if (!body || typeof body !== "object") {
+    return { ok: false, error: "요청 형식이 올바르지 않습니다." };
+  }
+
+  const payload = body as Partial<SeasonFormInput>;
+  const name = String(payload.name ?? "").trim();
+
+  if (!name) {
+    return { ok: false, error: "시즌 이름을 입력해주세요." };
+  }
+
+  return {
+    ok: true,
+    data: {
+      name,
+      members: normalizeRoster(payload.members)
+    }
+  };
+}
+
+export function validateTagPayload(body: unknown):
+  | { ok: true; data: TagFormInput }
+  | { ok: false; error: string } {
+  if (!body || typeof body !== "object") {
+    return { ok: false, error: "요청 형식이 올바르지 않습니다." };
+  }
+
+  const payload = body as Partial<TagFormInput>;
+  const name = String(payload.name ?? "").trim();
+
+  if (!name) {
+    return { ok: false, error: "태그 이름을 입력해주세요." };
+  }
+
+  return { ok: true, data: { name } };
 }

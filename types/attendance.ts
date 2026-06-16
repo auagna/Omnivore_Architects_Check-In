@@ -48,6 +48,8 @@ export type EventRecord = {
   is_active: boolean;
   custom_options: EventOption[];
   roster: string[];
+  season_id: string | null;
+  tag_id: string | null;
 };
 
 export type EventFormInput = {
@@ -59,6 +61,48 @@ export type EventFormInput = {
   isActive: boolean;
   customOptions: EventOption[];
   roster: string[];
+  seasonId: string | null;
+  tagId: string | null;
+};
+
+// 시즌별 멤버 명단
+export type Season = {
+  id: string;
+  created_at: string;
+  name: string;
+  members: string[];
+};
+
+export type SeasonFormInput = {
+  name: string;
+  members: string[];
+};
+
+// 이벤트 태그 (연사강연, 번개, 독서모임 등)
+export type Tag = {
+  id: string;
+  created_at: string;
+  name: string;
+};
+
+export type TagFormInput = {
+  name: string;
+};
+
+// 참석률 통계용 데이터
+export type StatsEvent = {
+  id: string;
+  title: string;
+  event_date: string | null;
+  season_id: string | null;
+  tag_id: string | null;
+  attendees: string[];
+};
+
+export type StatsResponse = {
+  seasons: Season[];
+  tags: Tag[];
+  events: StatsEvent[];
 };
 
 // 체크인 페이지(공개)에 내려보내는 이벤트 정보. 참가자 명단 등 민감 정보는 제외합니다.

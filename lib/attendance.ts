@@ -6,17 +6,26 @@ import {
   AttendanceStats,
   AttendanceUpdateInput,
   EventFormInput,
-  EventRecord
+  EventRecord,
+  Season,
+  SeasonFormInput,
+  StatsResponse,
+  Tag,
+  TagFormInput
 } from "@/types/attendance";
 import { CAPACITY_ERROR, DUPLICATE_ERROR, getEventCapacity } from "@/lib/validation";
 
 const ATTENDANCE_TABLE = "attendance_records";
 const EVENTS_TABLE = "events";
+const SEASONS_TABLE = "seasons";
+const TAGS_TABLE = "tags";
 
 const EVENT_COLUMNS =
-  "id, created_at, updated_at, title, description, location, event_date, capacity, is_active, custom_options, roster";
+  "id, created_at, updated_at, title, description, location, event_date, capacity, is_active, custom_options, roster, season_id, tag_id";
 const ATTENDANCE_COLUMNS =
   "id, created_at, event_id, name, phone_last4, group_type, memo, option_responses";
+const SEASON_COLUMNS = "id, created_at, name, members";
+const TAG_COLUMNS = "id, created_at, name";
 
 // DB row를 항상 안전한 기본값으로 정규화합니다 (마이그레이션 직후 null 대비).
 function normalizeEvent(row: Record<string, unknown> | null): EventRecord | null {
@@ -345,6 +354,166 @@ function toEventRow(input: EventFormInput) {
     capacity: input.capacity,
     is_active: input.isActive,
     custom_options: input.customOptions ?? [],
-    roster: input.roster ?? []
+    roster: input.roster ?? [],
+    season_id: input.seasonId ?? null,
+    tag_id: input.tagId ?? null
+  };
+}
+
+function normalizeSeason(row: Record<string, unknown>): Season {
+  return {
+    ...(row as Season),
+    members: Array.isArray(row.members) ? (row.members as string[]) : []
+  };
+}
+
+export async function listSeasons() {
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data, error } = await supabaseAdmin
+    .from(SEASONS_TABLE)
+    .select(SEASON_COLUMNS)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).map((row) => normalizeSeason(row as Record<string, unknown>));
+}
+
+export async function createSeason(input: SeasonFormInput) {
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data, error } = await supabaseAdmin
+    .from(SEASONS_TABLE)
+    .insert({ name: input.name, members: input.members })
+    .select(SEASON_COLUMNS)
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return normalizeSeason(data as Record<string, unknown>);
+}
+
+export async function updateSeason(id: string, input: SeasonFormInput) {
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data, error } = await supabaseAdmin
+    .from(SEASONS_TABLE)
+    .update({ name: input.name, members: input.members })
+    .eq("id", id)
+    .select(SEASON_COLUMNS)
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return normalizeSeason(data as Record<string, unknown>);
+}
+
+export async function deleteSeason(id: string) {
+  const supabaseAdmin = getSupabaseAdmin();
+  const { error } = await supabaseAdmin.from(SEASONS_TABLE).delete().eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export async function listTags() {
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data, error } = await supabaseAdmin
+    .from(TAGS_TABLE)
+    .select(TAG_COLUMNS)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as Tag[];
+}
+
+export async function createTag(input: TagFormInput) {
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data, error } = await supabaseAdmin
+    .from(TAGS_TABLE)
+    .insert({ name: input.name })
+    .select(TAG_COLUMNS)
+    .single();
+
+  if (error) {
+    if (isDuplicateError(error as never)) {
+      throw new Error("이미 같은 이름의 태그가 있습니다.");
+    }
+    throw new Error(error.message);
+  }
+
+  return data as Tag;
+}
+
+export async function updateTag(id: string, input: TagFormInput) {
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data, error } = await supabaseAdmin
+    .from(TAGS_TABLE)
+    .update({ name: input.name })
+    .eq("id", id)
+    .select(TAG_COLUMNS)
+    .single();
+
+  if (error) {
+    if (isDuplicateError(error as never)) {
+      throw new Error("이미 같은 이름의 태그가 있습니다.");
+    }
+    throw new Error(error.message);
+  }
+
+  return data as Tag;
+}
+
+export async function deleteTag(id: string) {
+  const supabaseAdmin = getSupabaseAdmin();
+  const { error } = await supabaseAdmin.from(TAGS_TABLE).delete().eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+// 참석률 통계용: 시즌/태그 목록과, 각 이벤트의 체크인 이름 목록을 반환합니다.
+export async function getStats(): Promise<StatsResponse> {
+  const supabaseAdmin = getSupabaseAdmin();
+  const [seasons, tags, events] = await Promise.all([listSeasons(), listTags(), listEvents()]);
+
+  const { data, error } = await supabaseAdmin
+    .from(ATTENDANCE_TABLE)
+    .select("event_id, name");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const attendeesByEvent = new Map<string, string[]>();
+  for (const row of (data ?? []) as { event_id: string | null; name: string }[]) {
+    if (!row.event_id) {
+      continue;
+    }
+    const bucket = attendeesByEvent.get(row.event_id) ?? [];
+    bucket.push(row.name);
+    attendeesByEvent.set(row.event_id, bucket);
+  }
+
+  return {
+    seasons,
+    tags,
+    events: events.map((event) => ({
+      id: event.id,
+      title: event.title,
+      event_date: event.event_date,
+      season_id: event.season_id,
+      tag_id: event.tag_id,
+      attendees: attendeesByEvent.get(event.id) ?? []
+    }))
   };
 }

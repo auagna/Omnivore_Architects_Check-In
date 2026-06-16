@@ -69,8 +69,37 @@ alter table public.events
 alter table public.attendance_records
   add column if not exists option_responses jsonb not null default '{}'::jsonb;
 
+-- 시즌별 멤버 명단과 이벤트 태그.
+create table if not exists public.seasons (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamp with time zone not null default now(),
+  name text not null,
+  members jsonb not null default '[]'::jsonb,
+  constraint seasons_name_not_blank check (length(trim(name)) > 0)
+);
+
+create table if not exists public.tags (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamp with time zone not null default now(),
+  name text not null,
+  constraint tags_name_not_blank check (length(trim(name)) > 0)
+);
+
+create unique index if not exists tags_name_unique on public.tags (lower(name));
+
+alter table public.events
+  add column if not exists season_id uuid references public.seasons(id) on delete set null,
+  add column if not exists tag_id uuid references public.tags(id) on delete set null;
+
+insert into public.tags (name)
+select x.name
+from (values ('연사강연'), ('번개'), ('독서모임')) as x(name)
+where not exists (select 1 from public.tags);
+
 alter table public.events enable row level security;
 alter table public.attendance_records enable row level security;
+alter table public.seasons enable row level security;
+alter table public.tags enable row level security;
 
 -- 이 앱은 Next.js 서버 API route에서 service role key로만 DB에 접근합니다.
 -- 클라이언트에 Supabase anon key를 배포하지 않으므로 공개 RLS policy를 만들지 않습니다.
