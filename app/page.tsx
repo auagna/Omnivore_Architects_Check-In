@@ -1,4 +1,6 @@
-import AttendanceForm from "@/components/AttendanceForm";
+import CheckInPanel from "@/components/CheckInPanel";
+import { getActiveEvent, getEventById } from "@/lib/attendance";
+import { PublicEvent } from "@/types/attendance";
 
 type HomePageProps = {
   searchParams?: Promise<{
@@ -6,9 +8,28 @@ type HomePageProps = {
   }>;
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage({ searchParams }: HomePageProps) {
   const params = await searchParams;
   const eventId = params?.eventId;
+
+  let publicEvent: PublicEvent | null = null;
+
+  try {
+    const event = eventId ? await getEventById(eventId) : await getActiveEvent();
+    if (event) {
+      publicEvent = {
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        capacity: event.capacity,
+        customOptions: event.custom_options
+      };
+    }
+  } catch {
+    publicEvent = null;
+  }
 
   return (
     <main className="safe-screen px-4 py-6 sm:px-6 md:px-8">
@@ -25,9 +46,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           </p>
         </div>
 
-        <div className="rounded-lg border border-line bg-panel/95 p-5 shadow-glow md:p-7">
-          <AttendanceForm eventId={eventId} />
-        </div>
+        <CheckInPanel event={publicEvent} eventId={eventId} />
       </section>
     </main>
   );

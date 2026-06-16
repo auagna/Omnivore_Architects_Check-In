@@ -1,7 +1,13 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { ApiErrorResponse, AttendanceFormInput, GroupType } from "@/types/attendance";
+import {
+  ApiErrorResponse,
+  AttendanceFormInput,
+  GroupType,
+  OptionResponses,
+  PublicEvent
+} from "@/types/attendance";
 
 const initialForm: AttendanceFormInput = {
   name: "",
@@ -11,11 +17,14 @@ const initialForm: AttendanceFormInput = {
 };
 
 type AttendanceFormProps = {
+  event: PublicEvent | null;
   eventId?: string;
 };
 
-export default function AttendanceForm({ eventId }: AttendanceFormProps) {
+export default function AttendanceForm({ event, eventId }: AttendanceFormProps) {
+  const options = event?.customOptions ?? [];
   const [form, setForm] = useState<AttendanceFormInput>(initialForm);
+  const [optionResponses, setOptionResponses] = useState<OptionResponses>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
@@ -30,7 +39,7 @@ export default function AttendanceForm({ eventId }: AttendanceFormProps) {
       const response = await fetch("/api/attendance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, eventId })
+        body: JSON.stringify({ ...form, eventId, optionResponses })
       });
       const data = (await response.json()) as ApiErrorResponse;
 
@@ -41,6 +50,7 @@ export default function AttendanceForm({ eventId }: AttendanceFormProps) {
 
       setSuccess("체크인 완료");
       setForm(initialForm);
+      setOptionResponses({});
       window.dispatchEvent(new Event("attendance:changed"));
     } catch {
       setError("네트워크 연결을 확인해주세요.");
@@ -51,6 +61,10 @@ export default function AttendanceForm({ eventId }: AttendanceFormProps) {
 
   function setField<K extends keyof AttendanceFormInput>(key: K, value: AttendanceFormInput[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function setOption(id: string, value: boolean) {
+    setOptionResponses((current) => ({ ...current, [id]: value }));
   }
 
   return (
@@ -106,6 +120,40 @@ export default function AttendanceForm({ eventId }: AttendanceFormProps) {
           ))}
         </div>
       </fieldset>
+
+      {options.length > 0 && (
+        <fieldset className="space-y-3">
+          <legend className="mb-1 text-sm font-medium text-slate-700 md:text-base">추가 선택</legend>
+          {options.map((option) => {
+            const checked = optionResponses[option.id] ?? false;
+            return (
+              <div key={option.id} className="flex items-center justify-between gap-3 rounded-md border border-line bg-ink px-4 py-3">
+                <span className="text-sm font-medium text-slate-700 md:text-base">{option.label}</span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setOption(option.id, true)}
+                    className={`focus-ring rounded px-3 py-1.5 text-sm font-semibold transition ${
+                      checked ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    참여
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOption(option.id, false)}
+                    className={`focus-ring rounded px-3 py-1.5 text-sm font-semibold transition ${
+                      !checked ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    미참여
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </fieldset>
+      )}
 
       <label className="block">
         <span className="mb-2 block text-sm font-medium text-slate-700 md:text-base">메모 (선택사항)</span>

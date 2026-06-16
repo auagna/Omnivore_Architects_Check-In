@@ -7,6 +7,7 @@ import {
   AttendanceListResponse,
   AttendanceRecord,
   EventFormInput,
+  EventOption,
   EventRecord,
   GroupType
 } from "@/types/attendance";
@@ -19,14 +20,26 @@ const emptyEventForm: EventFormInput = {
   location: "",
   eventDate: "",
   capacity: 60,
-  isActive: true
+  isActive: true,
+  customOptions: [],
+  roster: []
 };
+
+// 명단 대조용 이름 정규화 (공백·대소문자 무시)
+function normalizeName(value: string) {
+  return value.replace(/\s+/g, "").toLowerCase();
+}
+
+function makeOptionId() {
+  return `opt_${Math.random().toString(36).slice(2, 10)}`;
+}
 
 export default function AdminDashboard() {
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [selectedEventId, setSelectedEventId] = useState("");
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [eventForm, setEventForm] = useState<EventFormInput>(emptyEventForm);
+  const [rosterText, setRosterText] = useState("");
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [stats, setStats] = useState<AttendanceListResponse["stats"] | null>(null);
   const [search, setSearch] = useState("");
@@ -111,6 +124,31 @@ export default function AdminDashboard() {
     });
   }, [filter, records, search]);
 
+  // 참가자 명단(roster)을 체크인 기록과 대조해 출석/불참/명단 외를 계산합니다.
+  const rosterMatch = useMemo(() => {
+    const roster = selectedEvent?.roster ?? [];
+    const byName = new Map<string, AttendanceRecord>();
+    for (const record of records) {
+      byName.set(normalizeName(record.name), record);
+    }
+
+    const present: { name: string; record: AttendanceRecord }[] = [];
+    const absent: string[] = [];
+    for (const name of roster) {
+      const record = byName.get(normalizeName(name));
+      if (record) {
+        present.push({ name, record });
+      } else {
+        absent.push(name);
+      }
+    }
+
+    const rosterSet = new Set(roster.map(normalizeName));
+    const unexpected = records.filter((record) => !rosterSet.has(normalizeName(record.name)));
+
+    return { roster, present, absent, unexpected };
+  }, [selectedEvent, records]);
+
   async function saveEvent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsBusy(true);
@@ -118,7 +156,12 @@ export default function AdminDashboard() {
 
     try {
       const endpoint = editingEventId ? `/api/events/${editingEventId}` : "/api/events";
-      const payload = { ...eventForm, eventDate: localInputToIso(eventForm.eventDate) };
+      const payload = {
+        ...eventForm,
+        eventDate: localInputToIso(eventForm.eventDate),
+        customOptions: eventForm.customOptions.filter((option) => option.label.trim().length > 0),
+        roster: rosterText
+      };
       const response = await fetch(endpoint, {
         method: editingEventId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
@@ -134,6 +177,7 @@ export default function AdminDashboard() {
       setMessage(editingEventId ? "이벤트를 수정했습니다." : "이벤트를 추가했습니다.");
       setEditingEventId(null);
       setEventForm(emptyEventForm);
+      setRosterText("");
       await loadEvents();
       setSelectedEventId(data.event?.id ?? selectedEventId);
     } catch {
@@ -180,8 +224,32 @@ export default function AdminDashboard() {
       location: event.location ?? "",
       eventDate: event.event_date ? isoToLocalInput(event.event_date) : "",
       capacity: event.capacity,
-      isActive: event.is_active
+      isActive: event.is_active,
+      customOptions: event.custom_options.map((option) => ({ ...option })),
+      roster: event.roster
     });
+    setRosterText(event.roster.join("\n"));
+  }
+
+  function addCustomOption() {
+    setEventForm((current) => ({
+      ...current,
+      customOptions: [...current.customOptions, { id: makeOptionId(), label: "" }]
+    }));
+  }
+
+  function updateCustomOption(id: string, label: string) {
+    setEventForm((current) => ({
+      ...current,
+      customOptions: current.customOptions.map((option) => (option.id === id ? { ...option, label } : option))
+    }));
+  }
+
+  function removeCustomOption(id: string) {
+    setEventForm((current) => ({
+      ...current,
+      customOptions: current.customOptions.filter((option) => option.id !== id)
+    }));
   }
 
   async function deleteRecord(id: string) {
@@ -246,14 +314,26 @@ export default function AdminDashboard() {
   }
 
   function downloadExcel() {
-    const rows = filteredRecords.map((record) => ({
-      시간: formatDateTime(record.created_at),
-      이름: record.name,
-      휴대폰: record.phone_last4,
-      타입: record.group_type === "member" ? "멤버" : "게스트",
-      메모: record.memo ?? ""
-    }));
-    const html = buildExcelHtml(rows, selectedEvent?.title ?? "출석 명단");
+    const options = selectedEvent?.custom_options ?? [];
+    const rosterSet = new Set((selectedEvent?.roster ?? []).map(normalizeName));
+    const headers = ["시간", "이름", "휴대폰", "타입", ...options.map((option) => option.label), "명단대조", "메모"];
+
+    const rows = filteredRecords.map((record) => {
+      const row: Record<string, string> = {
+        시간: formatDateTime(record.created_at),
+        이름: record.name,
+        휴대폰: record.phone_last4,
+        타입: record.group_type === "member" ? "멤버" : "게스트",
+        명단대조: rosterSet.size === 0 ? "" : rosterSet.has(normalizeName(record.name)) ? "명단" : "명단외",
+        메모: record.memo ?? ""
+      };
+      for (const option of options) {
+        row[option.label] = record.option_responses?.[option.id] ? "참여" : "미참여";
+      }
+      return row;
+    });
+
+    const html = buildExcelHtml(headers, rows, selectedEvent?.title ?? "출석 명단");
     const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -306,20 +386,56 @@ export default function AdminDashboard() {
               <span className="admin-label">장소</span>
               <input className="admin-input" value={eventForm.location} onChange={(event) => setEventFormValue("location", event.target.value)} />
             </label>
-            <label className="block min-w-0">
+            <label className="block min-w-0 md:col-span-2">
               <span className="admin-label">설명</span>
               <input className="admin-input" value={eventForm.description} onChange={(event) => setEventFormValue("description", event.target.value)} />
             </label>
-            <label className="flex min-w-0 items-center gap-3 rounded-md border border-line bg-ink px-4 py-3 text-sm font-semibold text-slate-700">
+
+            <div className="min-w-0 md:col-span-2">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="block text-sm font-medium text-slate-600">선택항목 (식사 참여, 도슨트 참여 등)</span>
+                <button type="button" className="table-button" onClick={addCustomOption}>+ 항목 추가</button>
+              </div>
+              {eventForm.customOptions.length === 0 ? (
+                <p className="text-sm text-slate-400">참가자가 체크인할 때 참여/미참여를 선택하는 항목입니다. 필요할 때만 추가하세요.</p>
+              ) : (
+                <div className="space-y-2">
+                  {eventForm.customOptions.map((option) => (
+                    <div className="flex items-center gap-2" key={option.id}>
+                      <input
+                        className="admin-input"
+                        value={option.label}
+                        placeholder="예: 식사 참여 여부"
+                        onChange={(event) => updateCustomOption(option.id, event.target.value)}
+                      />
+                      <button type="button" className="table-button-danger shrink-0" onClick={() => removeCustomOption(option.id)}>삭제</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <label className="block min-w-0 md:col-span-2">
+              <span className="admin-label">참가자 명단 (한 줄에 한 명)</span>
+              <textarea
+                className="admin-input min-h-28 resize-y"
+                value={rosterText}
+                placeholder={"홍길동\n김철수\n이영희"}
+                onChange={(event) => setRosterText(event.target.value)}
+              />
+              <span className="mt-1 block text-xs text-slate-400">명단에 적힌 이름과 체크인한 이름을 대조해 불참 여부를 확인합니다.</span>
+            </label>
+
+            <label className="flex min-w-0 items-center gap-3 rounded-md border border-line bg-ink px-4 py-3 text-sm font-semibold text-slate-700 md:col-span-2">
               <input type="checkbox" checked={eventForm.isActive} onChange={(event) => setEventFormValue("isActive", event.target.checked)} />
               활성 이벤트로 사용
             </label>
-            <div className="flex gap-2">
+            <div className="flex gap-2 md:col-span-2">
               <button className="admin-button" type="submit" disabled={isBusy}>
                 {editingEventId ? "이벤트 수정" : "이벤트 추가"}
               </button>
               {editingEventId && (
-                <button className="admin-button-muted" type="button" onClick={() => { setEditingEventId(null); setEventForm(emptyEventForm); }}>
+                <button className="admin-button-muted" type="button" onClick={() => { setEditingEventId(null); setEventForm(emptyEventForm); setRosterText(""); }}>
                   취소
                 </button>
               )}
@@ -403,7 +519,68 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      <AttendanceTable records={filteredRecords} onDelete={deleteRecord} isBusy={isBusy} />
+      {selectedEvent && (
+        <section className="rounded-lg border border-line bg-panel p-5">
+          <div className="flex flex-col gap-1">
+            <h3 className="text-lg font-bold text-slate-900">{selectedEvent.title}</h3>
+            {selectedEvent.description && (
+              <p className="text-sm leading-6 text-slate-600">{selectedEvent.description}</p>
+            )}
+            {selectedEvent.custom_options.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {selectedEvent.custom_options.map((option) => (
+                  <span key={option.id} className="rounded-full border border-line bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
+                    {option.label}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {rosterMatch.roster.length > 0 && (
+            <div className="mt-5 border-t border-line pt-5">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                <span className="font-semibold text-slate-900">명단 대조</span>
+                <span className="text-slate-500">명단 {rosterMatch.roster.length}명</span>
+                <span className="text-emerald-700">출석 {rosterMatch.present.length}명</span>
+                <span className="text-red-600">불참 {rosterMatch.absent.length}명</span>
+                {rosterMatch.unexpected.length > 0 && (
+                  <span className="text-slate-500">명단 외 {rosterMatch.unexpected.length}명</span>
+                )}
+              </div>
+
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.04em] text-red-600">불참 ({rosterMatch.absent.length})</p>
+                  {rosterMatch.absent.length === 0 ? (
+                    <p className="text-sm text-slate-400">전원 출석했습니다.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {rosterMatch.absent.map((name) => (
+                        <span key={name} className="rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-sm text-red-700">{name}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.04em] text-slate-500">명단 외 체크인 ({rosterMatch.unexpected.length})</p>
+                  {rosterMatch.unexpected.length === 0 ? (
+                    <p className="text-sm text-slate-400">명단에 없는 체크인이 없습니다.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {rosterMatch.unexpected.map((record) => (
+                        <span key={record.id} className="rounded-md border border-line bg-white px-2.5 py-1 text-sm text-slate-600">{record.name}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      <AttendanceTable records={filteredRecords} options={selectedEvent?.custom_options ?? []} onDelete={deleteRecord} isBusy={isBusy} />
     </div>
   );
 
@@ -451,8 +628,7 @@ function isoToLocalInput(iso: string): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function buildExcelHtml(rows: Record<string, string>[], title: string) {
-  const headers = ["시간", "이름", "휴대폰", "타입", "메모"];
+function buildExcelHtml(headers: string[], rows: Record<string, string>[], title: string) {
   const body = rows
     .map((row) => `<tr>${headers.map((header) => `<td>${escapeHtml(row[header] ?? "")}</td>`).join("")}</tr>`)
     .join("");

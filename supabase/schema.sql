@@ -57,6 +57,18 @@ create index if not exists attendance_records_event_id_idx
 create index if not exists attendance_records_group_type_idx
   on public.attendance_records (group_type);
 
+-- 선택항목(식사/도슨트 참여 여부 등)과 참가자 명단(roster)을 이벤트에 저장합니다.
+-- custom_options: [{ "id": "uuid", "label": "식사 참여" }, ...]
+-- roster: ["홍길동", "김철수", ...]
+alter table public.events
+  add column if not exists custom_options jsonb not null default '[]'::jsonb,
+  add column if not exists roster jsonb not null default '[]'::jsonb;
+
+-- 참가자가 체크인 시 선택한 응답을 저장합니다.
+-- option_responses: { "option-id": true/false, ... }
+alter table public.attendance_records
+  add column if not exists option_responses jsonb not null default '{}'::jsonb;
+
 alter table public.events enable row level security;
 alter table public.attendance_records enable row level security;
 

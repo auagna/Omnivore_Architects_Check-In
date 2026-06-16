@@ -4,6 +4,7 @@ import {
   AttendanceFormInput,
   AttendanceRecord,
   AttendanceStats,
+  AttendanceUpdateInput,
   EventFormInput,
   EventRecord
 } from "@/types/attendance";
@@ -11,6 +12,34 @@ import { CAPACITY_ERROR, DUPLICATE_ERROR, getEventCapacity } from "@/lib/validat
 
 const ATTENDANCE_TABLE = "attendance_records";
 const EVENTS_TABLE = "events";
+
+const EVENT_COLUMNS =
+  "id, created_at, updated_at, title, description, location, event_date, capacity, is_active, custom_options, roster";
+const ATTENDANCE_COLUMNS =
+  "id, created_at, event_id, name, phone_last4, group_type, memo, option_responses";
+
+// DB row를 항상 안전한 기본값으로 정규화합니다 (마이그레이션 직후 null 대비).
+function normalizeEvent(row: Record<string, unknown> | null): EventRecord | null {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    ...(row as EventRecord),
+    custom_options: Array.isArray(row.custom_options) ? (row.custom_options as EventRecord["custom_options"]) : [],
+    roster: Array.isArray(row.roster) ? (row.roster as string[]) : []
+  };
+}
+
+function normalizeRecord(row: Record<string, unknown>): AttendanceRecord {
+  return {
+    ...(row as AttendanceRecord),
+    option_responses:
+      row.option_responses && typeof row.option_responses === "object"
+        ? (row.option_responses as AttendanceRecord["option_responses"])
+        : {}
+  };
+}
 
 export function buildAttendanceStats(records: AttendanceRecord[], capacity = getEventCapacity()): AttendanceStats {
   const member = records.filter((record) => record.group_type === "member").length;
@@ -29,21 +58,21 @@ export async function listEvents() {
   const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from(EVENTS_TABLE)
-    .select("id, created_at, updated_at, title, description, location, event_date, capacity, is_active")
+    .select(EVENT_COLUMNS)
     .order("created_at", { ascending: false });
 
   if (error) {
     throw new Error(error.message);
   }
 
-  return (data ?? []) as EventRecord[];
+  return (data ?? []).map((row) => normalizeEvent(row as Record<string, unknown>)!) as EventRecord[];
 }
 
 export async function getActiveEvent() {
   const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from(EVENTS_TABLE)
-    .select("id, created_at, updated_at, title, description, location, event_date, capacity, is_active")
+    .select(EVENT_COLUMNS)
     .eq("is_active", true)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -53,14 +82,14 @@ export async function getActiveEvent() {
     throw new Error(error.message);
   }
 
-  return data as EventRecord | null;
+  return normalizeEvent(data as Record<string, unknown> | null);
 }
 
 export async function getEventById(id: string) {
   const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from(EVENTS_TABLE)
-    .select("id, created_at, updated_at, title, description, location, event_date, capacity, is_active")
+    .select(EVENT_COLUMNS)
     .eq("id", id)
     .maybeSingle();
 
@@ -68,7 +97,7 @@ export async function getEventById(id: string) {
     throw new Error(error.message);
   }
 
-  return data as EventRecord | null;
+  return normalizeEvent(data as Record<string, unknown> | null);
 }
 
 export async function createEvent(input: EventFormInput) {
@@ -81,14 +110,14 @@ export async function createEvent(input: EventFormInput) {
   const { data, error } = await supabaseAdmin
     .from(EVENTS_TABLE)
     .insert(toEventRow(input))
-    .select("id, created_at, updated_at, title, description, location, event_date, capacity, is_active")
+    .select(EVENT_COLUMNS)
     .single();
 
   if (error) {
     throw new Error(error.message);
   }
 
-  return data as EventRecord;
+  return normalizeEvent(data as Record<string, unknown>)!;
 }
 
 export async function updateEvent(id: string, input: EventFormInput) {
@@ -102,14 +131,14 @@ export async function updateEvent(id: string, input: EventFormInput) {
     .from(EVENTS_TABLE)
     .update({ ...toEventRow(input), updated_at: new Date().toISOString() })
     .eq("id", id)
-    .select("id, created_at, updated_at, title, description, location, event_date, capacity, is_active")
+    .select(EVENT_COLUMNS)
     .single();
 
   if (error) {
     throw new Error(error.message);
   }
 
-  return data as EventRecord;
+  return normalizeEvent(data as Record<string, unknown>)!;
 }
 
 export async function deleteEvent(id: string) {
@@ -125,7 +154,7 @@ export async function listAttendanceRecords(eventId?: string) {
   const supabaseAdmin = getSupabaseAdmin();
   let query = supabaseAdmin
     .from(ATTENDANCE_TABLE)
-    .select("id, created_at, event_id, name, phone_last4, group_type, memo")
+    .select(ATTENDANCE_COLUMNS)
     .order("created_at", { ascending: false });
 
   if (eventId) {
@@ -138,7 +167,7 @@ export async function listAttendanceRecords(eventId?: string) {
     throw new Error(error.message);
   }
 
-  return (data ?? []) as AttendanceRecord[];
+  return (data ?? []).map((row) => normalizeRecord(row as Record<string, unknown>));
 }
 
 export async function createAttendanceRecord(input: AttendanceFormInput) {
@@ -166,9 +195,10 @@ export async function createAttendanceRecord(input: AttendanceFormInput) {
       name: input.name,
       phone_last4: input.phoneLast4,
       group_type: input.groupType,
-      memo: input.memo || null
+      memo: input.memo || null,
+      option_responses: filterOptionResponses(input.optionResponses, event?.custom_options)
     })
-    .select("id, created_at, event_id, name, phone_last4, group_type, memo")
+    .select(ATTENDANCE_COLUMNS)
     .single();
 
   if (error) {
@@ -179,7 +209,69 @@ export async function createAttendanceRecord(input: AttendanceFormInput) {
     throw new Error(error.message);
   }
 
-  return { ok: true as const, record: data as AttendanceRecord };
+  return { ok: true as const, record: normalizeRecord(data as Record<string, unknown>) };
+}
+
+// 참가자 본인 조회: 이벤트 범위 안에서 이름 + 연락처 뒷자리로 정확히 매칭합니다.
+export async function findAttendanceRecord(eventId: string | undefined, name: string, phoneLast4: string) {
+  const supabaseAdmin = getSupabaseAdmin();
+  const targetEvent = eventId ? await getEventById(eventId) : await getActiveEvent();
+
+  let query = supabaseAdmin
+    .from(ATTENDANCE_TABLE)
+    .select(ATTENDANCE_COLUMNS)
+    .eq("name", name)
+    .eq("phone_last4", phoneLast4)
+    .limit(1);
+
+  query = targetEvent?.id ? query.eq("event_id", targetEvent.id) : query.is("event_id", null);
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data ? normalizeRecord(data as Record<string, unknown>) : null;
+}
+
+export async function updateAttendanceRecord(id: string, input: AttendanceUpdateInput) {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  // 응답을 현재 이벤트의 선택항목으로 필터링하기 위해 기존 레코드의 event를 조회합니다.
+  const { data: existing, error: findError } = await supabaseAdmin
+    .from(ATTENDANCE_TABLE)
+    .select("id, event_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (findError) {
+    throw new Error(findError.message);
+  }
+
+  if (!existing) {
+    return { ok: false as const, status: 404, error: "체크인 기록을 찾을 수 없습니다." };
+  }
+
+  const eventId = (existing as { event_id: string | null }).event_id ?? undefined;
+  const event = eventId ? await getEventById(eventId) : null;
+
+  const { data, error } = await supabaseAdmin
+    .from(ATTENDANCE_TABLE)
+    .update({
+      group_type: input.groupType,
+      memo: input.memo || null,
+      option_responses: filterOptionResponses(input.optionResponses, event?.custom_options)
+    })
+    .eq("id", id)
+    .select(ATTENDANCE_COLUMNS)
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return { ok: true as const, record: normalizeRecord(data as Record<string, unknown>) };
 }
 
 export async function deleteAttendanceRecord(id: string) {
@@ -213,6 +305,27 @@ async function deactivateAllEvents() {
   }
 }
 
+// 이벤트에 정의된 선택항목 id에 해당하는 응답만 남깁니다.
+function filterOptionResponses(
+  responses: AttendanceFormInput["optionResponses"],
+  options: EventRecord["custom_options"] | undefined
+) {
+  if (!responses || !options || options.length === 0) {
+    return {};
+  }
+
+  const valid = new Set(options.map((option) => option.id));
+  const result: Record<string, boolean> = {};
+
+  for (const [id, value] of Object.entries(responses)) {
+    if (valid.has(id)) {
+      result[id] = Boolean(value);
+    }
+  }
+
+  return result;
+}
+
 function toEventRow(input: EventFormInput) {
   return {
     title: input.title,
@@ -220,6 +333,8 @@ function toEventRow(input: EventFormInput) {
     location: input.location || null,
     event_date: input.eventDate || null,
     capacity: input.capacity,
-    is_active: input.isActive
+    is_active: input.isActive,
+    custom_options: input.customOptions ?? [],
+    roster: input.roster ?? []
   };
 }

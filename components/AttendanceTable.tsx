@@ -1,14 +1,17 @@
 "use client";
 
-import { AttendanceRecord, GroupType } from "@/types/attendance";
+import { AttendanceRecord, EventOption, GroupType } from "@/types/attendance";
 
 type AttendanceTableProps = {
   records: AttendanceRecord[];
+  options: EventOption[];
   onDelete: (id: string) => void;
   isBusy: boolean;
 };
 
-export default function AttendanceTable({ records, onDelete, isBusy }: AttendanceTableProps) {
+export default function AttendanceTable({ records, options, onDelete, isBusy }: AttendanceTableProps) {
+  const hasOptions = options.length > 0;
+
   if (records.length === 0) {
     return (
       <div className="rounded-lg border border-line bg-panel p-8 text-center text-slate-500">
@@ -27,6 +30,7 @@ export default function AttendanceTable({ records, onDelete, isBusy }: Attendanc
               <th className="whitespace-nowrap px-4 py-3">이름</th>
               <th className="whitespace-nowrap px-4 py-3">휴대폰</th>
               <th className="whitespace-nowrap px-4 py-3">타입</th>
+              {hasOptions && <th className="whitespace-nowrap px-4 py-3">선택항목</th>}
               <th className="min-w-48 px-4 py-3">메모</th>
               <th className="whitespace-nowrap px-4 py-3 text-right">관리</th>
             </tr>
@@ -38,6 +42,25 @@ export default function AttendanceTable({ records, onDelete, isBusy }: Attendanc
                 <td className="whitespace-nowrap px-4 py-4 font-semibold text-slate-900">{record.name}</td>
                 <td className="whitespace-nowrap px-4 py-4 tabular-nums">{record.phone_last4}</td>
                 <td className="whitespace-nowrap px-4 py-4"><GroupBadge groupType={record.group_type} /></td>
+                {hasOptions && (
+                  <td className="px-4 py-4">
+                    <div className="flex flex-wrap gap-1">
+                      {options.map((option) => {
+                        const joined = Boolean(record.option_responses?.[option.id]);
+                        return (
+                          <span
+                            key={option.id}
+                            className={`rounded px-2 py-0.5 text-xs font-medium ${
+                              joined ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-400"
+                            }`}
+                          >
+                            {joined ? "○" : "✕"} {option.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </td>
+                )}
                 <td className="px-4 py-4 text-slate-600">{record.memo || "-"}</td>
                 <td className="whitespace-nowrap px-4 py-4 text-right">
                   <button className="table-button-danger" type="button" disabled={isBusy} onClick={() => onDelete(record.id)}>삭제</button>
