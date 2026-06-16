@@ -37,14 +37,14 @@ export default function AttendanceStats() {
   }, [load]);
 
   // 선택한 태그 기준으로 시즌별 멤버 참석률을 계산합니다.
-  const seasonStats = useMemo(() => {
+  const { seasonStats, tagEventCount, unassignedCount, unassignedAttendees } = useMemo(() => {
     if (!data || !selectedTagId) {
-      return [];
+      return { seasonStats: [], tagEventCount: 0, unassignedCount: 0, unassignedAttendees: 0 };
     }
 
     const tagEvents = data.events.filter((event) => event.tag_id === selectedTagId);
 
-    return data.seasons
+    const seasonStats = data.seasons
       .map((season) => {
         const events = tagEvents.filter((event) => event.season_id === season.id);
         const eventCount = events.length;
@@ -68,6 +68,15 @@ export default function AttendanceStats() {
         return { season, eventCount, members, averageRate };
       })
       .filter((entry) => entry.eventCount > 0);
+
+    const unassigned = tagEvents.filter((event) => !event.season_id);
+
+    return {
+      seasonStats,
+      tagEventCount: tagEvents.length,
+      unassignedCount: unassigned.length,
+      unassignedAttendees: unassigned.reduce((sum, event) => sum + event.attendees.length, 0)
+    };
   }, [data, selectedTagId]);
 
   return (
@@ -97,9 +106,20 @@ export default function AttendanceStats() {
         </div>
       )}
 
+      {unassignedCount > 0 && (
+        <p className="notice-error mt-3">
+          이 태그의 이벤트 {unassignedCount}개에 시즌이 지정되지 않아 멤버 참석률을 계산할 수 없습니다(체크인 {unassignedAttendees}명).
+          해당 이벤트를 편집해 시즌을 선택하면 통계에 반영됩니다.
+        </p>
+      )}
+
       <div className="mt-4 space-y-4">
         {seasonStats.length === 0 ? (
-          <p className="text-sm text-slate-400">선택한 태그에 해당하는 이벤트가 없습니다.</p>
+          <p className="text-sm text-slate-400">
+            {tagEventCount === 0
+              ? "선택한 태그의 이벤트가 없습니다."
+              : "선택한 태그의 이벤트에 시즌이 지정되지 않았습니다. 이벤트를 편집해 시즌을 선택해주세요."}
+          </p>
         ) : (
           seasonStats.map(({ season, eventCount, members, averageRate }) => (
             <div key={season.id} className="rounded-md border border-line bg-white p-4">
