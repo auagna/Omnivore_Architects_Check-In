@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import AttendanceTable from "@/components/AttendanceTable";
+import EventCalendar from "@/components/EventCalendar";
 import StatCard from "@/components/StatCard";
 import {
   AttendanceListResponse,
@@ -489,6 +490,8 @@ export default function AdminDashboard() {
 
         </div>
       </section>
+
+      <EventCalendar events={events} selectedEventId={selectedEvent?.id} onSelectEvent={setSelectedEventId} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="총 출석 수" value={stats?.total ?? records.length} tone="bright" />

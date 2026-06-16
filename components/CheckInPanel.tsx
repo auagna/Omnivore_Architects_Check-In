@@ -15,6 +15,15 @@ type Mode = "checkin" | "edit";
 export default function CheckInPanel({ event, eventId }: CheckInPanelProps) {
   const [mode, setMode] = useState<Mode>("checkin");
 
+  if (!event) {
+    return (
+      <div className="rounded-lg border border-line bg-panel/95 p-6 text-center shadow-glow md:p-8">
+        <p className="text-base font-semibold text-slate-900 md:text-lg">현재 진행 중인 이벤트가 없습니다.</p>
+        <p className="mt-2 text-sm text-slate-500 md:text-base">운영진에게 문의하거나 안내받은 QR 링크로 다시 접속해주세요.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-lg border border-line bg-panel/95 p-5 shadow-glow md:p-7">
       <div className="mb-5 grid grid-cols-2 gap-2 rounded-md bg-slate-100 p-1">

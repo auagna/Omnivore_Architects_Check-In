@@ -173,8 +173,18 @@ export async function listAttendanceRecords(eventId?: string) {
 export async function createAttendanceRecord(input: AttendanceFormInput) {
   const supabaseAdmin = getSupabaseAdmin();
   const event = input.eventId ? await getEventById(input.eventId) : await getActiveEvent();
-  const capacity = event?.capacity ?? getEventCapacity();
-  const eventId = event?.id ?? null;
+
+  // 이벤트를 특정할 수 없으면 어떤 이벤트에도 속하지 않는 기록(고아 데이터)이 생기므로 막습니다.
+  if (!event) {
+    return {
+      ok: false as const,
+      status: 409,
+      error: "현재 진행 중인 이벤트가 없습니다. 운영진에게 문의해주세요."
+    };
+  }
+
+  const capacity = event.capacity ?? getEventCapacity();
+  const eventId = event.id;
   const countQuery = supabaseAdmin
     .from(ATTENDANCE_TABLE)
     .select("id", { count: "exact", head: true });
