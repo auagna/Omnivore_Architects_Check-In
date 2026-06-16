@@ -805,7 +805,6 @@ export default function AdminDashboard() {
             <table className="min-w-full divide-y divide-line text-left text-sm">
               <thead className="bg-slate-100 text-xs text-slate-500">
                 <tr>
-                  <th className="px-4 py-3">선택</th>
                   <th className="px-4 py-3">이벤트</th>
                   <th className="px-4 py-3">태그</th>
                   <th className="px-4 py-3">일시</th>
@@ -817,15 +816,6 @@ export default function AdminDashboard() {
               <tbody className="divide-y divide-line">
                 {events.map((event) => (
                   <tr className="text-slate-700" key={event.id}>
-                    <td className="px-4 py-4">
-                      <input
-                        type="radio"
-                        name="selectedEvent"
-                        checked={selectedEvent?.id === event.id}
-                        onChange={() => setSelectedEventId(event.id)}
-                        aria-label={`${event.title} 선택`}
-                      />
-                    </td>
                     <td className="px-4 py-4 font-semibold text-slate-900">{event.title}</td>
                     <td className="px-4 py-4">{tags.find((tag) => tag.id === event.tag_id)?.name ?? "-"}</td>
                     <td className="px-4 py-4">{event.event_date ? formatDateTime(event.event_date) : "-"}</td>
