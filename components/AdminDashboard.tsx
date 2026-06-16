@@ -26,7 +26,7 @@ const emptyEventForm: EventFormInput = {
   location: "",
   eventDate: "",
   capacity: 60,
-  isActive: true,
+  isActive: false,
   customOptions: [],
   roster: [],
   seasonId: null,
@@ -264,6 +264,43 @@ export default function AdminDashboard() {
       setShowRosterPicker(false);
       await loadEvents();
       setSelectedEventId(data.event?.id ?? selectedEventId);
+    } catch {
+      setError("네트워크 연결을 확인해주세요.");
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  // 이벤트 리스트에서 활성/비활성을 전환합니다(활성은 1개만 유지됨).
+  async function setEventActive(event: EventRecord, active: boolean) {
+    setIsBusy(true);
+    clearNotice();
+    try {
+      const payload = {
+        title: event.title,
+        description: event.description ?? "",
+        location: event.location ?? "",
+        eventDate: event.event_date ?? "",
+        capacity: event.capacity,
+        isActive: active,
+        customOptions: event.custom_options,
+        roster: event.roster,
+        seasonId: event.season_id,
+        tagId: event.tag_id
+      };
+      const response = await fetch(`/api/events/${event.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event: payload })
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setError(data.error ?? "활성 상태 변경에 실패했습니다.");
+        return;
+      }
+      setMessage(active ? "활성 이벤트로 지정했습니다." : "이벤트를 비활성화했습니다.");
+      setSelectedEventId(event.id);
+      await loadEvents();
     } catch {
       setError("네트워크 연결을 확인해주세요.");
     } finally {
@@ -749,10 +786,9 @@ export default function AdminDashboard() {
               <span className="mt-2 block text-xs text-slate-400">선택한 명단과 체크인한 이름을 대조해 불참 여부를 확인합니다. 번개처럼 여러 시즌이 섞이면 시즌별 ‘전체 추가’로 합칠 수 있습니다.</span>
             </div>
 
-            <label className="flex min-w-0 items-center gap-3 rounded-md border border-line bg-ink px-4 py-3 text-sm font-semibold text-slate-700 md:col-span-2">
-              <input type="checkbox" checked={eventForm.isActive} onChange={(event) => setEventFormValue("isActive", event.target.checked)} />
-              활성 이벤트로 사용
-            </label>
+            <p className="text-xs text-slate-400 md:col-span-2">
+              활성화는 아래 이벤트 목록에서 ‘활성화’ 버튼으로 지정합니다. 활성 이벤트만 체크인이 열립니다.
+            </p>
             <div className="flex gap-2 md:col-span-2">
               <button className="admin-button" type="submit" disabled={isBusy}>
                 {editingEventId ? "이벤트 수정" : "이벤트 추가"}
@@ -769,22 +805,53 @@ export default function AdminDashboard() {
             <table className="min-w-full divide-y divide-line text-left text-sm">
               <thead className="bg-slate-100 text-xs text-slate-500">
                 <tr>
+                  <th className="px-4 py-3">선택</th>
                   <th className="px-4 py-3">이벤트</th>
                   <th className="px-4 py-3">태그</th>
                   <th className="px-4 py-3">일시</th>
                   <th className="px-4 py-3">정원</th>
-                  <th className="px-4 py-3">상태</th>
+                  <th className="px-4 py-3">활성</th>
                   <th className="px-4 py-3 text-right">관리</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {events.map((event) => (
                   <tr className="text-slate-700" key={event.id}>
+                    <td className="px-4 py-4">
+                      <input
+                        type="radio"
+                        name="selectedEvent"
+                        checked={selectedEvent?.id === event.id}
+                        onChange={() => setSelectedEventId(event.id)}
+                        aria-label={`${event.title} 선택`}
+                      />
+                    </td>
                     <td className="px-4 py-4 font-semibold text-slate-900">{event.title}</td>
                     <td className="px-4 py-4">{tags.find((tag) => tag.id === event.tag_id)?.name ?? "-"}</td>
                     <td className="px-4 py-4">{event.event_date ? formatDateTime(event.event_date) : "-"}</td>
                     <td className="px-4 py-4">{event.capacity}명</td>
-                    <td className="px-4 py-4">{event.is_active ? "활성" : "대기"}</td>
+                    <td className="px-4 py-4">
+                      {event.is_active ? (
+                        <button
+                          type="button"
+                          className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                          disabled={isBusy}
+                          title="클릭하면 비활성화됩니다"
+                          onClick={() => setEventActive(event, false)}
+                        >
+                          활성 중
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="table-button"
+                          disabled={isBusy}
+                          onClick={() => setEventActive(event, true)}
+                        >
+                          활성화
+                        </button>
+                      )}
+                    </td>
                     <td className="whitespace-nowrap px-4 py-4 text-right">
                       <button className="table-button" type="button" onClick={() => { setSelectedEventId(event.id); editEvent(event); }}>편집</button>
                       <button className="table-button-danger ml-2" type="button" disabled={isBusy} onClick={() => deleteEvent(event.id)}>삭제</button>
