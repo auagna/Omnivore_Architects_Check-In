@@ -301,6 +301,16 @@ export default function AdminDashboard() {
     });
   }
 
+  // 시즌 멤버 전체를 명단에서 제거합니다.
+  function removeSeasonFromRoster(seasonId: string) {
+    const season = seasons.find((item) => item.id === seasonId);
+    if (!season) {
+      return;
+    }
+    const toRemove = new Set(season.members.map((member) => member.trim()));
+    setRosterNames((current) => current.filter((name) => !toRemove.has(name)));
+  }
+
   function addCustomRosterName() {
     const name = customRosterName.trim();
     if (!name) {
@@ -537,9 +547,14 @@ export default function AdminDashboard() {
             <div className="min-w-0 md:col-span-2">
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <span className="block text-sm font-medium text-slate-600">참가자 명단 ({rosterNames.length}명)</span>
-                <button type="button" className="table-button" onClick={() => setShowRosterPicker((value) => !value)}>
-                  {showRosterPicker ? "닫기" : "명단 선택"}
-                </button>
+                <div className="flex items-center gap-2">
+                  {rosterNames.length > 0 && (
+                    <button type="button" className="table-button" onClick={() => setRosterNames([])}>전체 해제</button>
+                  )}
+                  <button type="button" className="table-button" onClick={() => setShowRosterPicker((value) => !value)}>
+                    {showRosterPicker ? "닫기" : "명단 선택"}
+                  </button>
+                </div>
               </div>
 
               {rosterNames.length === 0 ? (
@@ -564,7 +579,11 @@ export default function AdminDashboard() {
                       <div key={season.id}>
                         <div className="mb-1.5 flex items-center justify-between">
                           <span className="text-xs font-semibold text-slate-500">{season.name}</span>
-                          <button type="button" className="text-xs text-slate-400 hover:text-slate-700" onClick={() => addSeasonToRoster(season.id)}>전체 추가</button>
+                          <div className="flex items-center gap-2">
+                            <button type="button" className="text-xs text-slate-400 hover:text-slate-700" onClick={() => addSeasonToRoster(season.id)}>전체 추가</button>
+                            <span className="text-xs text-slate-300">|</span>
+                            <button type="button" className="text-xs text-slate-400 hover:text-red-600" onClick={() => removeSeasonFromRoster(season.id)}>전체 해제</button>
+                          </div>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {season.members.map((member) => {
