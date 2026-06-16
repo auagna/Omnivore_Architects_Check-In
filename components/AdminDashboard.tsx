@@ -359,6 +359,41 @@ export default function AdminDashboard() {
     setRosterNames((current) => current.filter((name) => !toRemove.has(name)));
   }
 
+  // 잡식건축가(전체 시즌 멤버 종합)를 한 번에 추가/제거합니다.
+  function allSeasonMembers() {
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const season of seasons) {
+      for (const member of season.members) {
+        const name = member.trim();
+        if (name && !seen.has(name)) {
+          seen.add(name);
+          result.push(name);
+        }
+      }
+    }
+    return result;
+  }
+
+  function addAllMembersToRoster() {
+    setRosterNames((current) => {
+      const seen = new Set(current);
+      const next = [...current];
+      for (const name of allSeasonMembers()) {
+        if (!seen.has(name)) {
+          seen.add(name);
+          next.push(name);
+        }
+      }
+      return next;
+    });
+  }
+
+  function removeAllMembersFromRoster() {
+    const all = new Set(allSeasonMembers());
+    setRosterNames((current) => current.filter((name) => !all.has(name)));
+  }
+
   function addCustomRosterName() {
     const name = customRosterName.trim();
     if (!name) {
@@ -647,6 +682,16 @@ export default function AdminDashboard() {
 
               {showRosterPicker && (
                 <div className="mt-3 space-y-3 rounded-md border border-line bg-white p-3">
+                  {seasons.length > 0 && (
+                    <div className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2">
+                      <span className="text-xs font-semibold text-slate-700">잡식건축가 (전체 {allSeasonMembers().length}명)</span>
+                      <div className="flex items-center gap-2">
+                        <button type="button" className="text-xs text-slate-500 hover:text-slate-900" onClick={addAllMembersToRoster}>전체 추가</button>
+                        <span className="text-xs text-slate-300">|</span>
+                        <button type="button" className="text-xs text-slate-500 hover:text-red-600" onClick={removeAllMembersFromRoster}>전체 해제</button>
+                      </div>
+                    </div>
+                  )}
                   {seasons.length === 0 ? (
                     <p className="text-sm text-slate-400">등록된 시즌 멤버가 없습니다. 아래에서 직접 추가하거나 ‘시즌 멤버 관리’에서 멤버를 등록하세요.</p>
                   ) : (

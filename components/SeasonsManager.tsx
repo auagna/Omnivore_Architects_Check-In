@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { Season } from "@/types/attendance";
 
 type SeasonsManagerProps = {
@@ -9,6 +9,22 @@ type SeasonsManagerProps = {
 };
 
 export default function SeasonsManager({ seasons, onChanged }: SeasonsManagerProps) {
+  // 잡식건축가 = 모든 시즌 멤버를 합친 종합(중복 제거). 시즌을 추가하면 자동 반영됩니다.
+  const allMembers = useMemo(() => {
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const season of seasons) {
+      for (const member of season.members) {
+        const name = member.trim();
+        if (name && !seen.has(name)) {
+          seen.add(name);
+          result.push(name);
+        }
+      }
+    }
+    return result;
+  }, [seasons]);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [name, setName] = useState("");
@@ -130,7 +146,15 @@ export default function SeasonsManager({ seasons, onChanged }: SeasonsManagerPro
         </form>
       )}
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-4 rounded-md border border-slate-900 bg-slate-900 px-4 py-3 text-white">
+        <p className="font-semibold">잡식건축가 <span className="font-normal text-slate-300">· 전체 멤버 종합</span></p>
+        <p className="mt-0.5 text-xs text-slate-300">
+          멤버 {allMembers.length}명 · {allMembers.join(", ") || "등록된 멤버 없음"}
+        </p>
+        <p className="mt-1 text-[11px] text-slate-400">시즌을 추가하면 자동으로 합산됩니다(중복 제거).</p>
+      </div>
+
+      <div className="mt-3 space-y-2">
         {seasons.length === 0 ? (
           <p className="text-sm text-slate-400">등록된 시즌이 없습니다.</p>
         ) : (
