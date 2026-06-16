@@ -17,7 +17,7 @@ type FilterValue = "all" | GroupType;
 
 const emptyEventForm: EventFormInput = {
   title: "잡식건축가 연사 강연",
-  description: "연사 강연 출석 체크인",
+  description: "잡식건축가 체크인",
   location: "",
   eventDate: "",
   capacity: 60,
