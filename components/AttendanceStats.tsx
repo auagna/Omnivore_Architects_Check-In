@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StatsResponse } from "@/types/attendance";
 
+const ALL_TAGS = "__all__";
+
 function normalizeName(value: string) {
   return value.replace(/\s+/g, "").toLowerCase();
 }
@@ -24,7 +26,7 @@ export default function AttendanceStats() {
         return;
       }
       setData(json);
-      setSelectedTagId((current) => current || json.tags[0]?.id || "");
+      setSelectedTagId((current) => current || ALL_TAGS);
     } catch {
       setError("네트워크 연결을 확인해주세요.");
     } finally {
@@ -42,7 +44,8 @@ export default function AttendanceStats() {
       return { rows: [], eventCount: 0, averageRate: 0 };
     }
 
-    const tagEvents = data.events.filter((event) => event.tag_id === selectedTagId);
+    const tagEvents =
+      selectedTagId === ALL_TAGS ? data.events : data.events.filter((event) => event.tag_id === selectedTagId);
     const eventCount = tagEvents.length;
 
     // 멤버를 이름 기준으로 모으고, 속한 시즌들을 라벨로 합칩니다.
@@ -92,12 +95,19 @@ export default function AttendanceStats() {
           {loading ? "불러오는 중" : "새로고침"}
         </button>
       </div>
-      <p className="mt-1 text-sm text-slate-500">태그별로 멤버 참석률을 확인합니다. 멤버 옆에 소속 시즌이 표기됩니다.</p>
+      <p className="mt-1 text-sm text-slate-500">전체 또는 태그별로 멤버 참석률을 확인합니다. 멤버 옆에 소속 시즌이 표기됩니다.</p>
 
       {error && <p className="notice-error mt-3">{error}</p>}
 
-      {data && data.tags.length > 0 && (
+      {data && (
         <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setSelectedTagId(ALL_TAGS)}
+            className={`filter-button ${selectedTagId === ALL_TAGS ? "filter-button-active" : ""}`}
+          >
+            전체
+          </button>
           {data.tags.map((tag) => (
             <button
               key={tag.id}
