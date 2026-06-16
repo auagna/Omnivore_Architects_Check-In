@@ -72,6 +72,8 @@ export default function AdminDashboard() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isBusy, setIsBusy] = useState(false);
+  const [showSeasonManager, setShowSeasonManager] = useState(false);
+  const [showTagManager, setShowTagManager] = useState(false);
 
   const selectedEvent = useMemo(
     () => events.find((event) => event.id === selectedEventId) ?? events.find((event) => event.is_active) ?? events[0],
@@ -632,6 +634,19 @@ export default function AdminDashboard() {
       {/* 2. 달력 */}
       <EventCalendar events={events} selectedEventId={selectedEvent?.id} onSelectEvent={setSelectedEventId} />
 
+      <section className="rounded-lg border border-line bg-panel p-5">
+        <div className="mb-4">
+          <p className="text-sm text-slate-500">실시간 집계</p>
+          <h3 className="text-lg font-bold text-slate-900">출석 현황</h3>
+        </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <StatCard label="총 출석 수" value={stats?.total ?? records.length} tone="bright" />
+          <StatCard label="멤버 수" value={stats?.member ?? 0} />
+          <StatCard label="게스트 수" value={stats?.guest ?? 0} />
+          <StatCard label="잔여 좌석" value={stats?.remaining ?? 0} />
+        </div>
+      </section>
+
       {/* 3. 이벤트 관리 + 멤버(시즌) 리스트 */}
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 rounded-lg border border-line bg-panel p-5">
@@ -853,18 +868,53 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="min-w-0 space-y-5">
-          <SeasonsManager seasons={seasons} onChanged={() => loadSeasons().catch((seasonError) => setError(seasonError.message))} />
-          <TagsManager tags={tags} onChanged={() => loadTags().catch((tagError) => setError(tagError.message))} />
+        <div className="min-w-0 space-y-3">
+          <section className="rounded-lg border border-line bg-panel p-5">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-4 text-left"
+              aria-expanded={showSeasonManager}
+              onClick={() => setShowSeasonManager((current) => !current)}
+            >
+              <span>
+                <span className="block text-lg font-bold text-slate-900">시즌 멤버 관리</span>
+                <span className="mt-1 block text-sm text-slate-500">필요할 때만 펼쳐서 시즌별 멤버를 관리합니다.</span>
+              </span>
+              <span className="rounded-md border border-line px-3 py-2 text-sm font-semibold text-slate-600">
+                {showSeasonManager ? "숨기기" : "열기"}
+              </span>
+            </button>
+            {showSeasonManager && (
+              <div className="mt-4">
+                <SeasonsManager seasons={seasons} onChanged={() => loadSeasons().catch((seasonError) => setError(seasonError.message))} />
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-lg border border-line bg-panel p-5">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-4 text-left"
+              aria-expanded={showTagManager}
+              onClick={() => setShowTagManager((current) => !current)}
+            >
+              <span>
+                <span className="block text-lg font-bold text-slate-900">태그 관리</span>
+                <span className="mt-1 block text-sm text-slate-500">필요할 때만 펼쳐서 이벤트 종류 태그를 관리합니다.</span>
+              </span>
+              <span className="rounded-md border border-line px-3 py-2 text-sm font-semibold text-slate-600">
+                {showTagManager ? "숨기기" : "열기"}
+              </span>
+            </button>
+            {showTagManager && (
+              <div className="mt-4">
+                <TagsManager tags={tags} onChanged={() => loadTags().catch((tagError) => setError(tagError.message))} />
+              </div>
+            )}
+          </section>
         </div>
       </section>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard label="총 출석 수" value={stats?.total ?? records.length} tone="bright" />
-        <StatCard label="멤버 수" value={stats?.member ?? 0} />
-        <StatCard label="게스트 수" value={stats?.guest ?? 0} />
-        <StatCard label="잔여 좌석" value={stats?.remaining ?? 0} />
-      </div>
 
       <section className="rounded-lg border border-line bg-panel p-4">
         <div className="grid gap-3 lg:grid-cols-[14rem_1fr_auto_auto_auto] lg:items-center">
