@@ -18,7 +18,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   try {
     const event = eventId ? await getEventById(eventId) : await getActiveEvent();
-    if (event) {
+    // 활성화된 이벤트만 체크인을 받습니다.
+    if (event && event.is_active) {
       publicEvent = {
         id: event.id,
         title: event.title,

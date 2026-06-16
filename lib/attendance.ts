@@ -192,6 +192,15 @@ export async function createAttendanceRecord(input: AttendanceFormInput) {
     };
   }
 
+  // 활성화되지 않은 이벤트에는 체크인을 받지 않습니다.
+  if (!event.is_active) {
+    return {
+      ok: false as const,
+      status: 409,
+      error: "아직 시작되지 않은 이벤트입니다. 운영진에게 문의해주세요."
+    };
+  }
+
   const capacity = event.capacity ?? getEventCapacity();
   const eventId = event.id;
   const countQuery = supabaseAdmin

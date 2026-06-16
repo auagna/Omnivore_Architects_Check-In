@@ -394,21 +394,45 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-lg border border-line bg-panel p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="text-sm text-slate-500">관리자</p>
-            <h2 className="mt-2 text-2xl font-bold text-slate-900">이벤트 및 출석 관리</h2>
-            <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-              이벤트 추가, 편집, 삭제와 QR 배포, 참가자 출석 명단 확인, 엑셀 내보내기를 한곳에서 관리합니다.
-            </p>
+      {/* 1. 이벤트 및 출석 관리 + QR */}
+      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="rounded-lg border border-line bg-panel p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-sm text-slate-500">관리자</p>
+              <h2 className="mt-2 text-2xl font-bold text-slate-900">이벤트 및 출석 관리</h2>
+              <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+                이벤트 추가, 편집, 삭제와 QR 배포, 참가자 출석 명단 확인, 엑셀 내보내기를 한곳에서 관리합니다.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+
+        <div className="rounded-lg border border-line bg-panel p-5">
+          <h3 className="text-lg font-bold text-slate-900">QR 배포</h3>
+          <div className="mt-4 rounded-md border border-line bg-white p-4">
+            {qrLink && (
+              <img
+                alt="체크인 QR 코드"
+                className="mx-auto h-56 w-56"
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=224x224&data=${encodeURIComponent(qrLink)}`}
+              />
+            )}
+          </div>
+          <p className="mt-3 break-all text-sm text-slate-600">{qrLink || "이벤트를 먼저 추가해주세요."}</p>
+          <button className="admin-button mt-4 w-full" type="button" disabled={!qrLink} onClick={copyQrLink}>
+            QR 배포 링크 복사
+          </button>
+        </div>
+      </section>
 
       {message && <p className="notice-success">{message}</p>}
       {error && <p className="notice-error">{error}</p>}
 
+      {/* 2. 달력 */}
+      <EventCalendar events={events} selectedEventId={selectedEvent?.id} onSelectEvent={setSelectedEventId} />
+
+      {/* 3. 이벤트 관리 + 멤버(시즌) 리스트 */}
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="rounded-lg border border-line bg-panel p-5">
           <h3 className="text-lg font-bold text-slate-900">이벤트 관리</h3>
@@ -534,31 +558,10 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-line bg-panel p-5">
-          <h3 className="text-lg font-bold text-slate-900">QR 배포</h3>
-          <div className="mt-4 rounded-md border border-line bg-white p-4">
-            {qrLink && (
-              <img
-                alt="체크인 QR 코드"
-                className="mx-auto h-56 w-56"
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=224x224&data=${encodeURIComponent(qrLink)}`}
-              />
-            )}
-          </div>
-          <p className="mt-3 break-all text-sm text-slate-600">{qrLink || "이벤트를 먼저 추가해주세요."}</p>
-          <button className="admin-button mt-4 w-full" type="button" disabled={!qrLink} onClick={copyQrLink}>
-            QR 배포 링크 복사
-          </button>
-
-        </div>
+        <SeasonsManager seasons={seasons} onChanged={() => loadSeasons().catch((seasonError) => setError(seasonError.message))} />
       </section>
 
-      <EventCalendar events={events} selectedEventId={selectedEvent?.id} onSelectEvent={setSelectedEventId} />
-
-      <div className="grid gap-5 lg:grid-cols-2">
-        <SeasonsManager seasons={seasons} onChanged={() => loadSeasons().catch((seasonError) => setError(seasonError.message))} />
-        <TagsManager tags={tags} onChanged={() => loadTags().catch((tagError) => setError(tagError.message))} />
-      </div>
+      <TagsManager tags={tags} onChanged={() => loadTags().catch((tagError) => setError(tagError.message))} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="총 출석 수" value={stats?.total ?? records.length} tone="bright" />
