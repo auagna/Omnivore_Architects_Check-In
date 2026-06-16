@@ -263,15 +263,31 @@ export default function AdminDashboard() {
     setRosterText(event.roster.join("\n"));
   }
 
-  // 시즌 선택 시 해당 시즌 멤버 명단을 참가자 명단으로 불러옵니다.
-  function selectSeason(seasonId: string) {
-    setEventFormValue("seasonId", seasonId || null);
-    if (seasonId) {
-      const season = seasons.find((item) => item.id === seasonId);
-      if (season) {
-        setRosterText(season.members.join("\n"));
-      }
+  // 시즌 명단을 참가자 명단에 병합합니다(이벤트를 시즌에 묶지 않음).
+  // 번개처럼 여러 시즌이 섞이는 경우 시즌을 차례로 불러와 합칠 수 있습니다.
+  function loadSeasonMembers(seasonId: string) {
+    if (!seasonId) {
+      return;
     }
+    const season = seasons.find((item) => item.id === seasonId);
+    if (!season) {
+      return;
+    }
+    setRosterText((current) => {
+      const existing = current
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      const seen = new Set(existing);
+      for (const member of season.members) {
+        const name = member.trim();
+        if (name && !seen.has(name)) {
+          seen.add(name);
+          existing.push(name);
+        }
+      }
+      return existing.join("\n");
+    });
   }
 
   function addCustomOption() {
@@ -406,11 +422,11 @@ export default function AdminDashboard() {
           <div className="mt-4 rounded-md border border-line bg-white p-4">
             <p className="text-sm font-semibold text-slate-900">이벤트 생성 및 관리 단계</p>
             <ol className="mt-2 space-y-1.5 text-sm leading-6 text-slate-600">
-              <li><b className="font-semibold text-slate-700">1. 시즌 등록</b> · 하단 &lsquo;시즌 멤버 관리&rsquo;에서 시즌과 멤버 명단을 추가합니다.</li>
+              <li><b className="font-semibold text-slate-700">1. 멤버 명단 등록</b> · 하단 &lsquo;시즌 멤버 관리&rsquo;에서 시즌별 멤버 명단을 관리합니다.</li>
               <li><b className="font-semibold text-slate-700">2. 태그 확인</b> · &lsquo;태그 관리&rsquo;에서 이벤트 종류(연사강연·번개·독서모임)를 확인하거나 추가합니다.</li>
-              <li><b className="font-semibold text-slate-700">3. 이벤트 생성</b> · &lsquo;이벤트 관리&rsquo;에서 시즌·태그를 선택합니다. 시즌을 고르면 참가자 명단이 자동 입력됩니다.</li>
+              <li><b className="font-semibold text-slate-700">3. 이벤트 생성</b> · &lsquo;이벤트 관리&rsquo;에서 태그를 선택하고, 필요하면 &lsquo;시즌 명단 불러오기&rsquo;로 참가자 명단을 채웁니다(여러 시즌 합치기 가능).</li>
               <li><b className="font-semibold text-slate-700">4. 활성화 &amp; QR 배포</b> · &lsquo;활성 이벤트로 사용&rsquo;을 켜야 체크인이 열립니다. QR 배포 링크를 공유하세요.</li>
-              <li><b className="font-semibold text-slate-700">5. 결과 확인</b> · 행사 후 출석 명단·명단 대조·엑셀 내보내기와 참석률 통계를 확인합니다.</li>
+              <li><b className="font-semibold text-slate-700">5. 결과 확인</b> · 행사 후 출석 명단·명단 대조·엑셀 내보내기와 태그별 참석률 통계를 확인합니다.</li>
             </ol>
           </div>
         </div>
@@ -460,16 +476,7 @@ export default function AdminDashboard() {
               <span className="admin-label">장소</span>
               <input className="admin-input" value={eventForm.location} onChange={(event) => setEventFormValue("location", event.target.value)} />
             </label>
-            <label className="block min-w-0">
-              <span className="admin-label">시즌 (선택 시 명단 자동 입력)</span>
-              <select className="admin-input" value={eventForm.seasonId ?? ""} onChange={(event) => selectSeason(event.target.value)}>
-                <option value="">시즌 미지정</option>
-                {seasons.map((season) => (
-                  <option key={season.id} value={season.id}>{season.name} (멤버 {season.members.length}명)</option>
-                ))}
-              </select>
-            </label>
-            <label className="block min-w-0">
+            <label className="block min-w-0 md:col-span-2">
               <span className="admin-label">태그</span>
               <select className="admin-input" value={eventForm.tagId ?? ""} onChange={(event) => setEventFormValue("tagId", event.target.value || null)}>
                 <option value="">태그 미지정</option>
@@ -507,16 +514,33 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            <label className="block min-w-0 md:col-span-2">
-              <span className="admin-label">참가자 명단 (한 줄에 한 명)</span>
+            <div className="min-w-0 md:col-span-2">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <span className="block text-sm font-medium text-slate-600">참가자 명단 (한 줄에 한 명)</span>
+                {seasons.length > 0 && (
+                  <select
+                    className="admin-input w-auto py-1.5 text-sm"
+                    value=""
+                    onChange={(event) => {
+                      loadSeasonMembers(event.target.value);
+                      event.currentTarget.value = "";
+                    }}
+                  >
+                    <option value="">시즌 명단 불러오기</option>
+                    {seasons.map((season) => (
+                      <option key={season.id} value={season.id}>{season.name} (멤버 {season.members.length}명)</option>
+                    ))}
+                  </select>
+                )}
+              </div>
               <textarea
                 className="admin-input min-h-28 resize-y"
                 value={rosterText}
                 placeholder={"홍길동\n김철수\n이영희"}
                 onChange={(event) => setRosterText(event.target.value)}
               />
-              <span className="mt-1 block text-xs text-slate-400">명단에 적힌 이름과 체크인한 이름을 대조해 불참 여부를 확인합니다.</span>
-            </label>
+              <span className="mt-1 block text-xs text-slate-400">시즌 명단을 불러와 합칠 수 있습니다(번개처럼 여러 시즌이 섞이면 차례로 불러오세요). 체크인한 이름과 대조해 불참 여부를 확인합니다.</span>
+            </div>
 
             <label className="flex min-w-0 items-center gap-3 rounded-md border border-line bg-ink px-4 py-3 text-sm font-semibold text-slate-700 md:col-span-2">
               <input type="checkbox" checked={eventForm.isActive} onChange={(event) => setEventFormValue("isActive", event.target.checked)} />
