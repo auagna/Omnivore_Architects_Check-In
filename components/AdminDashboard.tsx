@@ -397,14 +397,21 @@ export default function AdminDashboard() {
       {/* 1. 이벤트 및 출석 관리 + QR */}
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="rounded-lg border border-line bg-panel p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="text-sm text-slate-500">관리자</p>
-              <h2 className="mt-2 text-2xl font-bold text-slate-900">이벤트 및 출석 관리</h2>
-              <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-                이벤트 추가, 편집, 삭제와 QR 배포, 참가자 출석 명단 확인, 엑셀 내보내기를 한곳에서 관리합니다.
-              </p>
-            </div>
+          <p className="text-sm text-slate-500">관리자</p>
+          <h2 className="mt-2 text-2xl font-bold text-slate-900">이벤트 및 출석 관리</h2>
+          <p className="mt-3 text-base leading-7 text-slate-600">
+            이벤트 추가, 편집, 삭제와 QR 배포, 참가자 출석 명단 확인, 엑셀 내보내기를 한곳에서 관리합니다.
+          </p>
+
+          <div className="mt-4 rounded-md border border-line bg-white p-4">
+            <p className="text-sm font-semibold text-slate-900">이벤트 생성 및 관리 단계</p>
+            <ol className="mt-2 space-y-1.5 text-sm leading-6 text-slate-600">
+              <li><b className="font-semibold text-slate-700">1. 시즌 등록</b> · 하단 &lsquo;시즌 멤버 관리&rsquo;에서 시즌과 멤버 명단을 추가합니다.</li>
+              <li><b className="font-semibold text-slate-700">2. 태그 확인</b> · &lsquo;태그 관리&rsquo;에서 이벤트 종류(연사강연·번개·독서모임)를 확인하거나 추가합니다.</li>
+              <li><b className="font-semibold text-slate-700">3. 이벤트 생성</b> · &lsquo;이벤트 관리&rsquo;에서 시즌·태그를 선택합니다. 시즌을 고르면 참가자 명단이 자동 입력됩니다.</li>
+              <li><b className="font-semibold text-slate-700">4. 활성화 &amp; QR 배포</b> · &lsquo;활성 이벤트로 사용&rsquo;을 켜야 체크인이 열립니다. QR 배포 링크를 공유하세요.</li>
+              <li><b className="font-semibold text-slate-700">5. 결과 확인</b> · 행사 후 출석 명단·명단 대조·엑셀 내보내기와 참석률 통계를 확인합니다.</li>
+            </ol>
           </div>
         </div>
 
@@ -558,10 +565,11 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <SeasonsManager seasons={seasons} onChanged={() => loadSeasons().catch((seasonError) => setError(seasonError.message))} />
+        <div className="space-y-5">
+          <SeasonsManager seasons={seasons} onChanged={() => loadSeasons().catch((seasonError) => setError(seasonError.message))} />
+          <TagsManager tags={tags} onChanged={() => loadTags().catch((tagError) => setError(tagError.message))} />
+        </div>
       </section>
-
-      <TagsManager tags={tags} onChanged={() => loadTags().catch((tagError) => setError(tagError.message))} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="총 출석 수" value={stats?.total ?? records.length} tone="bright" />
