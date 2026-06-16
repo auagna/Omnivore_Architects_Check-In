@@ -47,7 +47,9 @@ export default function AdminDashboard() {
   const [selectedEventId, setSelectedEventId] = useState("");
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [eventForm, setEventForm] = useState<EventFormInput>(emptyEventForm);
-  const [rosterText, setRosterText] = useState("");
+  const [rosterNames, setRosterNames] = useState<string[]>([]);
+  const [showRosterPicker, setShowRosterPicker] = useState(false);
+  const [customRosterName, setCustomRosterName] = useState("");
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
@@ -193,7 +195,7 @@ export default function AdminDashboard() {
         ...eventForm,
         eventDate: localInputToIso(eventForm.eventDate),
         customOptions: eventForm.customOptions.filter((option) => option.label.trim().length > 0),
-        roster: rosterText
+        roster: rosterNames
       };
       const response = await fetch(endpoint, {
         method: editingEventId ? "PUT" : "POST",
@@ -210,7 +212,8 @@ export default function AdminDashboard() {
       setMessage(editingEventId ? "이벤트를 수정했습니다." : "이벤트를 추가했습니다.");
       setEditingEventId(null);
       setEventForm(emptyEventForm);
-      setRosterText("");
+      setRosterNames([]);
+      setShowRosterPicker(false);
       await loadEvents();
       setSelectedEventId(data.event?.id ?? selectedEventId);
     } catch {
@@ -263,34 +266,48 @@ export default function AdminDashboard() {
       seasonId: event.season_id,
       tagId: event.tag_id
     });
-    setRosterText(event.roster.join("\n"));
+    setRosterNames(event.roster);
+    setShowRosterPicker(false);
   }
 
-  // 시즌 명단을 참가자 명단에 병합합니다(이벤트를 시즌에 묶지 않음).
-  // 번개처럼 여러 시즌이 섞이는 경우 시즌을 차례로 불러와 합칠 수 있습니다.
-  function loadSeasonMembers(seasonId: string) {
-    if (!seasonId) {
+  // 참가자 명단을 버튼 선택으로 관리합니다.
+  function toggleRosterName(rawName: string) {
+    const name = rawName.trim();
+    if (!name) {
       return;
     }
+    setRosterNames((current) =>
+      current.includes(name) ? current.filter((item) => item !== name) : [...current, name]
+    );
+  }
+
+  // 시즌 멤버 전체를 한 번에 명단에 추가합니다(번개처럼 여러 시즌 합치기 가능).
+  function addSeasonToRoster(seasonId: string) {
     const season = seasons.find((item) => item.id === seasonId);
     if (!season) {
       return;
     }
-    setRosterText((current) => {
-      const existing = current
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter(Boolean);
-      const seen = new Set(existing);
+    setRosterNames((current) => {
+      const seen = new Set(current);
+      const next = [...current];
       for (const member of season.members) {
         const name = member.trim();
         if (name && !seen.has(name)) {
           seen.add(name);
-          existing.push(name);
+          next.push(name);
         }
       }
-      return existing.join("\n");
+      return next;
     });
+  }
+
+  function addCustomRosterName() {
+    const name = customRosterName.trim();
+    if (!name) {
+      return;
+    }
+    setRosterNames((current) => (current.includes(name) ? current : [...current, name]));
+    setCustomRosterName("");
   }
 
   function addCustomOption() {
@@ -519,30 +536,78 @@ export default function AdminDashboard() {
 
             <div className="min-w-0 md:col-span-2">
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <span className="block text-sm font-medium text-slate-600">참가자 명단 (한 줄에 한 명)</span>
-                {seasons.length > 0 && (
-                  <select
-                    className="admin-input w-auto py-1.5 text-sm"
-                    value=""
-                    onChange={(event) => {
-                      loadSeasonMembers(event.target.value);
-                      event.currentTarget.value = "";
-                    }}
-                  >
-                    <option value="">시즌 명단 불러오기</option>
-                    {seasons.map((season) => (
-                      <option key={season.id} value={season.id}>{season.name} (멤버 {season.members.length}명)</option>
-                    ))}
-                  </select>
-                )}
+                <span className="block text-sm font-medium text-slate-600">참가자 명단 ({rosterNames.length}명)</span>
+                <button type="button" className="table-button" onClick={() => setShowRosterPicker((value) => !value)}>
+                  {showRosterPicker ? "닫기" : "명단 선택"}
+                </button>
               </div>
-              <textarea
-                className="admin-input min-h-28 resize-y"
-                value={rosterText}
-                placeholder={"홍길동\n김철수\n이영희"}
-                onChange={(event) => setRosterText(event.target.value)}
-              />
-              <span className="mt-1 block text-xs text-slate-400">시즌 명단을 불러와 합칠 수 있습니다(번개처럼 여러 시즌이 섞이면 차례로 불러오세요). 체크인한 이름과 대조해 불참 여부를 확인합니다.</span>
+
+              {rosterNames.length === 0 ? (
+                <p className="text-sm text-slate-400">‘명단 선택’을 눌러 참가자를 추가하세요.</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {rosterNames.map((name) => (
+                    <span key={name} className="inline-flex items-center gap-1 rounded-md border border-line bg-white px-2.5 py-1 text-sm text-slate-700">
+                      {name}
+                      <button type="button" className="text-slate-400 hover:text-red-600" onClick={() => toggleRosterName(name)}>×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {showRosterPicker && (
+                <div className="mt-3 space-y-3 rounded-md border border-line bg-white p-3">
+                  {seasons.length === 0 ? (
+                    <p className="text-sm text-slate-400">등록된 시즌 멤버가 없습니다. 아래에서 직접 추가하거나 ‘시즌 멤버 관리’에서 멤버를 등록하세요.</p>
+                  ) : (
+                    seasons.map((season) => (
+                      <div key={season.id}>
+                        <div className="mb-1.5 flex items-center justify-between">
+                          <span className="text-xs font-semibold text-slate-500">{season.name}</span>
+                          <button type="button" className="text-xs text-slate-400 hover:text-slate-700" onClick={() => addSeasonToRoster(season.id)}>전체 추가</button>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {season.members.map((member) => {
+                            const active = rosterNames.includes(member.trim());
+                            return (
+                              <button
+                                key={member}
+                                type="button"
+                                onClick={() => toggleRosterName(member)}
+                                className={`rounded-full border px-3 py-1 text-sm transition ${
+                                  active
+                                    ? "border-slate-900 bg-slate-900 text-white"
+                                    : "border-line bg-white text-slate-600 hover:bg-slate-100"
+                                }`}
+                              >
+                                {active ? "✓ " : ""}{member}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))
+                  )}
+
+                  <div className="flex gap-2 border-t border-line pt-3">
+                    <input
+                      className="admin-input"
+                      value={customRosterName}
+                      placeholder="명단에 없는 이름 직접 추가"
+                      onChange={(event) => setCustomRosterName(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          addCustomRosterName();
+                        }
+                      }}
+                    />
+                    <button type="button" className="admin-button shrink-0" onClick={addCustomRosterName}>추가</button>
+                  </div>
+                </div>
+              )}
+
+              <span className="mt-2 block text-xs text-slate-400">선택한 명단과 체크인한 이름을 대조해 불참 여부를 확인합니다. 번개처럼 여러 시즌이 섞이면 시즌별 ‘전체 추가’로 합칠 수 있습니다.</span>
             </div>
 
             <label className="flex min-w-0 items-center gap-3 rounded-md border border-line bg-ink px-4 py-3 text-sm font-semibold text-slate-700 md:col-span-2">
@@ -554,7 +619,7 @@ export default function AdminDashboard() {
                 {editingEventId ? "이벤트 수정" : "이벤트 추가"}
               </button>
               {editingEventId && (
-                <button className="admin-button-muted" type="button" onClick={() => { setEditingEventId(null); setEventForm(emptyEventForm); setRosterText(""); }}>
+                <button className="admin-button-muted" type="button" onClick={() => { setEditingEventId(null); setEventForm(emptyEventForm); setRosterNames([]); setShowRosterPicker(false); }}>
                   취소
                 </button>
               )}
