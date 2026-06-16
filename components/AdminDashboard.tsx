@@ -142,16 +142,19 @@ export default function AdminDashboard() {
   const filteredRecords = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
-    return records.filter((record) => {
-      const matchesFilter = filter === "all" || record.group_type === filter;
-      const matchesSearch =
-        !normalizedSearch ||
-        record.name.toLowerCase().includes(normalizedSearch) ||
-        record.phone_last4.includes(normalizedSearch) ||
-        (record.memo ?? "").toLowerCase().includes(normalizedSearch);
+    return records
+      .filter((record) => {
+        const matchesFilter = filter === "all" || record.group_type === filter;
+        const matchesSearch =
+          !normalizedSearch ||
+          record.name.toLowerCase().includes(normalizedSearch) ||
+          record.phone_last4.includes(normalizedSearch) ||
+          (record.memo ?? "").toLowerCase().includes(normalizedSearch);
 
-      return matchesFilter && matchesSearch;
-    });
+        return matchesFilter && matchesSearch;
+      })
+      // 이름 가나다순 정렬(같은 이름은 체크인 시간순). 중복 이름은 표에서 번호로 구분합니다.
+      .sort((a, b) => a.name.localeCompare(b.name, "ko") || a.created_at.localeCompare(b.created_at));
   }, [filter, records, search]);
 
   // 참가자 명단(roster)을 체크인 기록과 대조해 출석/불참/명단 외를 계산합니다.

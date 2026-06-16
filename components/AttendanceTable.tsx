@@ -12,6 +12,25 @@ type AttendanceTableProps = {
 export default function AttendanceTable({ records, options, onDelete, isBusy }: AttendanceTableProps) {
   const hasOptions = options.length > 0;
 
+  // 같은 이름이 여러 명이면 이름 뒤에 1, 2 번호를 붙여 구분합니다(표시용).
+  const nameTotal = new Map<string, number>();
+  for (const record of records) {
+    const key = record.name.trim();
+    nameTotal.set(key, (nameTotal.get(key) ?? 0) + 1);
+  }
+  const labelById = new Map<string, string>();
+  const running = new Map<string, number>();
+  for (const record of records) {
+    const key = record.name.trim();
+    if ((nameTotal.get(key) ?? 1) > 1) {
+      const index = (running.get(key) ?? 0) + 1;
+      running.set(key, index);
+      labelById.set(record.id, `${record.name}${index}`);
+    } else {
+      labelById.set(record.id, record.name);
+    }
+  }
+
   if (records.length === 0) {
     return (
       <div className="rounded-lg border border-line bg-panel p-8 text-center text-slate-500">
@@ -39,7 +58,7 @@ export default function AttendanceTable({ records, options, onDelete, isBusy }: 
             {records.map((record) => (
               <tr className="text-slate-700" key={record.id}>
                 <td className="whitespace-nowrap px-4 py-4 text-slate-500 tabular-nums">{formatTime(record.created_at)}</td>
-                <td className="whitespace-nowrap px-4 py-4 font-semibold text-slate-900">{record.name}</td>
+                <td className="whitespace-nowrap px-4 py-4 font-semibold text-slate-900">{labelById.get(record.id) ?? record.name}</td>
                 <td className="whitespace-nowrap px-4 py-4 tabular-nums">{record.phone_last4}</td>
                 <td className="whitespace-nowrap px-4 py-4"><GroupBadge groupType={record.group_type} /></td>
                 {hasOptions && (
