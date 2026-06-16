@@ -19,6 +19,7 @@ const ATTENDANCE_TABLE = "attendance_records";
 const EVENTS_TABLE = "events";
 const SEASONS_TABLE = "seasons";
 const TAGS_TABLE = "tags";
+const SETTINGS_TABLE = "app_settings";
 
 const EVENT_COLUMNS =
   "id, created_at, updated_at, title, description, location, event_date, capacity, is_active, custom_options, roster, season_id, tag_id";
@@ -484,6 +485,33 @@ export async function updateTag(id: string, input: TagFormInput) {
 export async function deleteTag(id: string) {
   const supabaseAdmin = getSupabaseAdmin();
   const { error } = await supabaseAdmin.from(TAGS_TABLE).delete().eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+// 관리자 편집 설정(매뉴얼 등) 조회/저장.
+export async function getSetting(key: string): Promise<string | null> {
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data, error } = await supabaseAdmin
+    .from(SETTINGS_TABLE)
+    .select("value")
+    .eq("key", key)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data ? (data as { value: string }).value : null;
+}
+
+export async function setSetting(key: string, value: string): Promise<void> {
+  const supabaseAdmin = getSupabaseAdmin();
+  const { error } = await supabaseAdmin
+    .from(SETTINGS_TABLE)
+    .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: "key" });
 
   if (error) {
     throw new Error(error.message);

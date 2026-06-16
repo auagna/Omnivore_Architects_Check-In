@@ -96,10 +96,18 @@ select x.name
 from (values ('연사강연'), ('번개'), ('독서모임')) as x(name)
 where not exists (select 1 from public.tags);
 
+-- 관리자 편집 가능한 앱 설정(매뉴얼 등)
+create table if not exists public.app_settings (
+  key text primary key,
+  value text not null default '',
+  updated_at timestamp with time zone not null default now()
+);
+
 alter table public.events enable row level security;
 alter table public.attendance_records enable row level security;
 alter table public.seasons enable row level security;
 alter table public.tags enable row level security;
+alter table public.app_settings enable row level security;
 
 -- 이 앱은 Next.js 서버 API route에서 service role key로만 DB에 접근합니다.
 -- 클라이언트에 Supabase anon key를 배포하지 않으므로 공개 RLS policy를 만들지 않습니다.

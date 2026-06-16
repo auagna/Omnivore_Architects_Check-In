@@ -33,6 +33,15 @@ const emptyEventForm: EventFormInput = {
   tagId: null
 };
 
+const MANUAL_KEY = "event_manual";
+const DEFAULT_EVENT_MANUAL = [
+  "1. 멤버 명단 등록 · 하단 ‘시즌 멤버 관리’에서 시즌별 멤버 명단을 관리합니다.",
+  "2. 태그 확인 · ‘태그 관리’에서 이벤트 종류(연사강연·번개·독서모임)를 확인하거나 추가합니다.",
+  "3. 이벤트 생성 · ‘이벤트 관리’에서 태그를 선택하고, ‘명단 선택’으로 참가자를 추가합니다.",
+  "4. 활성화 & QR 배포 · ‘활성 이벤트로 사용’을 켜야 체크인이 열립니다. QR 배포 링크를 공유하세요.",
+  "5. 결과 확인 · 행사 후 출석 명단·명단 대조·엑셀 내보내기와 태그별 참석률 통계를 확인합니다."
+].join("\n");
+
 // 명단 대조용 이름 정규화 (공백·대소문자 무시)
 function normalizeName(value: string) {
   return value.replace(/\s+/g, "").toLowerCase();
@@ -52,6 +61,10 @@ export default function AdminDashboard() {
   const [customRosterName, setCustomRosterName] = useState("");
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [manualText, setManualText] = useState(DEFAULT_EVENT_MANUAL);
+  const [manualDraft, setManualDraft] = useState("");
+  const [editingManual, setEditingManual] = useState(false);
+  const [manualBusy, setManualBusy] = useState(false);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [stats, setStats] = useState<AttendanceListResponse["stats"] | null>(null);
   const [search, setSearch] = useState("");
@@ -120,11 +133,46 @@ export default function AdminDashboard() {
     setTags(data.tags ?? []);
   }, []);
 
+  const loadManual = useCallback(async () => {
+    const response = await fetch(`/api/settings/${MANUAL_KEY}`, { cache: "no-store" });
+    const data = (await response.json()) as { value?: string | null; error?: string };
+    if (!response.ok) {
+      throw new Error(data.error ?? "매뉴얼을 불러오지 못했습니다.");
+    }
+    // 저장된 값이 없으면 기본 매뉴얼을 사용합니다.
+    setManualText(data.value && data.value.trim() ? data.value : DEFAULT_EVENT_MANUAL);
+  }, []);
+
+  async function saveManual() {
+    setManualBusy(true);
+    clearNotice();
+    try {
+      const response = await fetch(`/api/settings/${MANUAL_KEY}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: manualDraft })
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setError(data.error ?? "매뉴얼 저장에 실패했습니다.");
+        return;
+      }
+      setManualText(manualDraft.trim() ? manualDraft : DEFAULT_EVENT_MANUAL);
+      setEditingManual(false);
+      setMessage("매뉴얼을 저장했습니다.");
+    } catch {
+      setError("네트워크 연결을 확인해주세요.");
+    } finally {
+      setManualBusy(false);
+    }
+  }
+
   useEffect(() => {
     loadEvents().catch((eventError) => setError(eventError.message));
     loadSeasons().catch((seasonError) => setError(seasonError.message));
     loadTags().catch((tagError) => setError(tagError.message));
-  }, [loadEvents, loadSeasons, loadTags]);
+    loadManual().catch((manualError) => setError(manualError.message));
+  }, [loadEvents, loadSeasons, loadTags, loadManual]);
 
   useEffect(() => {
     if (!selectedEvent?.id) {
@@ -450,14 +498,41 @@ export default function AdminDashboard() {
           </p>
 
           <div className="mt-4 rounded-md border border-line bg-white p-4">
-            <p className="text-sm font-semibold text-slate-900">이벤트 생성 및 관리 단계</p>
-            <ol className="mt-2 space-y-1.5 text-sm leading-6 text-slate-600">
-              <li><b className="font-semibold text-slate-700">1. 멤버 명단 등록</b> · 하단 &lsquo;시즌 멤버 관리&rsquo;에서 시즌별 멤버 명단을 관리합니다.</li>
-              <li><b className="font-semibold text-slate-700">2. 태그 확인</b> · &lsquo;태그 관리&rsquo;에서 이벤트 종류(연사강연·번개·독서모임)를 확인하거나 추가합니다.</li>
-              <li><b className="font-semibold text-slate-700">3. 이벤트 생성</b> · &lsquo;이벤트 관리&rsquo;에서 태그를 선택하고, 필요하면 &lsquo;시즌 명단 불러오기&rsquo;로 참가자 명단을 채웁니다(여러 시즌 합치기 가능).</li>
-              <li><b className="font-semibold text-slate-700">4. 활성화 &amp; QR 배포</b> · &lsquo;활성 이벤트로 사용&rsquo;을 켜야 체크인이 열립니다. QR 배포 링크를 공유하세요.</li>
-              <li><b className="font-semibold text-slate-700">5. 결과 확인</b> · 행사 후 출석 명단·명단 대조·엑셀 내보내기와 태그별 참석률 통계를 확인합니다.</li>
-            </ol>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-slate-900">이벤트 생성 및 관리 단계</p>
+              {!editingManual && (
+                <button
+                  type="button"
+                  className="table-button"
+                  onClick={() => { setManualDraft(manualText); setEditingManual(true); }}
+                >
+                  편집
+                </button>
+              )}
+            </div>
+
+            {editingManual ? (
+              <div className="mt-2 space-y-2">
+                <textarea
+                  className="admin-input min-h-40 resize-y"
+                  value={manualDraft}
+                  onChange={(event) => setManualDraft(event.target.value)}
+                  placeholder="한 줄에 한 단계씩 입력하세요."
+                />
+                <div className="flex gap-2">
+                  <button type="button" className="admin-button" disabled={manualBusy} onClick={saveManual}>
+                    {manualBusy ? "저장 중" : "저장"}
+                  </button>
+                  <button type="button" className="admin-button-muted" onClick={() => setEditingManual(false)}>취소</button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-2 space-y-1.5 text-sm leading-6 text-slate-600">
+                {manualText.split(/\r?\n/).filter((line) => line.trim()).map((line, index) => (
+                  <p key={index}>{line}</p>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
